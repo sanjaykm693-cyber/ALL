@@ -1,0 +1,1503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sapphire One — Back Office</title>
+<style>
+/* Structural stylesheet shared by every design. Palette, type and shape come from the
+   design file through CSS custom properties; the three navigation layouts live here. */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font);font-size:var(--fs,13.5px);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.45}
+a{color:var(--accent);text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--font-head);margin:0}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.big{width:40px;height:40px}
+kbd{font:600 10.5px var(--font-mono);border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--muted);background:var(--surface)}
+
+/* ---------------------------------------------------------------- app grid */
+.app{min-height:100vh;display:grid;grid-template-columns:var(--side-w,264px) 1fr;grid-template-rows:var(--top-h,60px) 1fr auto;grid-template-areas:"top top" "side main" "foot foot"}
+.topbar{grid-area:top;position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:18px;padding:0 18px;background:var(--topbar-bg);color:var(--topbar-text);border-bottom:1px solid var(--topbar-border,var(--border));box-shadow:var(--topbar-shadow,none)}
+.sidebar{grid-area:side;position:sticky;top:var(--top-h,60px);height:calc(100vh - var(--top-h,60px));overflow:auto;display:flex;flex-direction:column;background:var(--nav-bg);color:var(--nav-text);border-right:1px solid var(--nav-border,var(--border))}
+.main{grid-area:main;padding:var(--main-pad,24px 28px 40px);min-width:0}
+.foot{grid-area:foot;display:flex;justify-content:space-between;gap:16px;padding:12px 28px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);background:var(--foot-bg,var(--surface))}
+.scrim{display:none}
+.hamburger{display:none}
+
+/* topbar pieces */
+.brand{display:flex;align-items:center;gap:10px;color:inherit;min-width:0}
+.brand-mark{width:34px;height:34px;border-radius:var(--mark-radius,9px);display:grid;place-items:center;font:700 16px var(--font-head);background:var(--accent);color:var(--accent-ink);flex:none}
+.brand-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.brand-text b{font-family:var(--font-head);font-size:14px;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-text small{font-size:11px;opacity:.7}
+.topbar-mid{display:flex;align-items:center;gap:12px;flex:1;justify-content:center;min-width:0}
+.topbar-mid>*{flex:none}
+.topbar-right{flex:none}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.gsearch{display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;min-width:240px;border:1px solid var(--topbar-field-border,var(--border));border-radius:var(--radius);background:var(--topbar-field,var(--surface));color:var(--muted);cursor:pointer;text-align:left}
+.gsearch span{flex:1;font-size:12.5px}
+.seg-toggle{display:flex;border:1px solid var(--topbar-field-border,var(--border));border-radius:var(--radius);overflow:hidden;background:var(--topbar-field,var(--surface))}
+.seg{border:0;background:transparent;padding:0 14px;height:34px;font-weight:600;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.seg.on{background:var(--accent);color:var(--accent-ink)}
+.exch-sel{height:36px;border:1px solid var(--topbar-field-border,var(--border));border-radius:var(--radius);background:var(--topbar-field,var(--surface));padding:0 10px;font-weight:600;font-size:12.5px}
+.meta{display:flex;gap:16px;font-size:11.5px;opacity:.85;white-space:nowrap}
+.meta b{font-weight:600}
+.user{display:flex;align-items:center;gap:9px}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:12px;background:var(--accent-soft);color:var(--accent)}
+.user-text{display:flex;flex-direction:column;line-height:1.15}
+.user-text b{font-size:12.5px}.user-text small{font-size:11px;opacity:.7}
+.ibtn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;border-radius:var(--radius);background:transparent;cursor:pointer;color:inherit}
+.ibtn:hover{background:var(--hover)}
+.ibtn .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--neg);border:2px solid var(--topbar-bg)}
+
+/* navigation */
+.sidebar-head{padding:16px 18px 6px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.6}
+.nav{padding:4px 10px}
+.nav-sec-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:var(--radius);background:transparent;color:inherit;cursor:pointer;font-weight:600;font-size:13px;text-align:left}
+.nav-sec-btn:hover{background:var(--nav-hover)}
+.nav-sec.current>.nav-sec-btn{color:var(--nav-active-text);background:var(--nav-active)}
+.nav-sec-btn span{flex:1}
+.nav-sec-btn .chev{width:14px;height:14px;transition:transform .2s;opacity:.6}
+.nav-sec.open>.nav-sec-btn .chev{transform:rotate(90deg)}
+.nav-sec-btn .count{font:600 10.5px var(--font-mono);opacity:.5;font-style:normal}
+.nav-items{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease}
+.nav-sec.open>.nav-items{grid-template-rows:1fr}
+.nav-items-in{overflow:hidden;display:flex;flex-direction:column;padding-left:22px;position:relative}
+.nav-items-in::before{content:"";position:absolute;left:18px;top:6px;bottom:8px;width:1px;background:var(--nav-line)}
+.nav-item{display:block;padding:6px 10px 6px 14px;border-radius:var(--radius);color:var(--nav-text);font-size:12.5px;opacity:.85;position:relative}
+.nav-item:hover{background:var(--nav-hover);opacity:1}
+.nav-item.active{background:var(--nav-active);color:var(--nav-active-text);opacity:1;font-weight:600}
+.nav-item.active::before{content:"";position:absolute;left:-4px;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--accent)}
+.nav-favs{margin:10px 10px 0;padding:10px;border-top:1px solid var(--nav-line)}
+.nav-favs-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.6;padding:4px 6px 8px}
+.nav-favs .nav-item{padding-left:10px}
+.sidebar-foot{margin-top:auto;padding:14px 18px;font-size:11px;opacity:.55}
+
+/* ---- topnav layout */
+body[data-layout=topnav] .app{grid-template-columns:1fr;grid-template-rows:var(--top-h,60px) auto 1fr auto;grid-template-areas:"top" "side" "main" "foot"}
+body[data-layout=topnav] .sidebar{position:sticky;top:var(--top-h,60px);height:auto;flex-direction:row;align-items:center;padding:0 22px;border-right:0;border-bottom:1px solid var(--nav-border,var(--border));z-index:30;overflow:visible}
+body[data-layout=topnav] .sidebar-head,body[data-layout=topnav] .sidebar-foot,body[data-layout=topnav] .nav-favs{display:none}
+body[data-layout=topnav] .nav{display:flex;gap:2px;padding:0}
+body[data-layout=topnav] .nav-sec{position:relative}
+body[data-layout=topnav] .nav-sec-btn{padding:13px 14px;border-radius:0;border-bottom:3px solid transparent;margin-bottom:-1px}
+body[data-layout=topnav] .nav-sec.current>.nav-sec-btn{background:transparent;border-bottom-color:var(--accent)}
+body[data-layout=topnav] .nav-sec-btn .chev{transform:rotate(90deg)}
+body[data-layout=topnav] .nav-sec.open>.nav-sec-btn .chev{transform:rotate(-90deg)}
+body[data-layout=topnav] .nav-items{position:absolute;top:100%;left:0;display:none;min-width:250px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:6px;z-index:50}
+body[data-layout=topnav] .nav-sec.open>.nav-items{display:block}
+body[data-layout=topnav] .nav-items-in{padding:0;overflow:visible;display:grid;grid-template-columns:repeat(var(--cols,1),1fr)}
+body[data-layout=topnav] .nav-sec[data-key=report] .nav-items{min-width:560px;--cols:2}
+body[data-layout=topnav] .nav-sec[data-key=financial] .nav-items,body[data-layout=topnav] .nav-sec[data-key=request] .nav-items{min-width:520px;--cols:2}
+body[data-layout=topnav] .nav-items-in::before{display:none}
+body[data-layout=topnav] .nav-item{color:var(--text);padding:8px 12px}
+body[data-layout=topnav] .main{max-width:var(--max-w,1480px);width:100%;margin:0 auto}
+body[data-layout=topnav] .nav-sec-btn .count{display:none}
+
+/* ---- rail layout */
+body[data-layout=rail] .app{grid-template-columns:72px 1fr}
+body[data-layout=rail] .sidebar{overflow:visible;align-items:stretch;z-index:35}
+body[data-layout=rail] .sidebar-head,body[data-layout=rail] .nav-favs,body[data-layout=rail] .sidebar-foot{display:none}
+body[data-layout=rail] .nav{padding:8px 8px}
+body[data-layout=rail] .nav-sec{position:relative;margin-bottom:4px}
+body[data-layout=rail] .nav-sec-btn{flex-direction:column;gap:5px;padding:9px 4px;font-size:10px;font-weight:600;text-align:center}
+body[data-layout=rail] .nav-sec-btn .ic{width:21px;height:21px}
+body[data-layout=rail] .nav-sec-btn .chev,body[data-layout=rail] .nav-sec-btn .count{display:none}
+body[data-layout=rail] .nav-items{position:absolute;left:calc(100% + 6px);top:0;display:none;min-width:260px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:8px;z-index:60}
+body[data-layout=rail] .nav-sec.open>.nav-items{display:block}
+body[data-layout=rail] .nav-items-in{padding:0;overflow:visible}
+body[data-layout=rail] .nav-items-in::before{display:none}
+body[data-layout=rail] .nav-sec[data-key=report] .nav-items{min-width:520px}
+body[data-layout=rail] .nav-sec[data-key=report] .nav-items-in{display:grid;grid-template-columns:1fr 1fr}
+body[data-layout=rail] .nav-item{color:var(--text);padding:8px 12px}
+
+/* ------------------------------------------------------------- page pieces */
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:18px}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.crumbs i{font-style:normal;opacity:.5}
+.crumbs b{font-weight:600;color:var(--text)}
+h1{font-size:var(--h1,24px);font-weight:var(--h1-w,700);letter-spacing:var(--h1-ls,-.01em);display:flex;align-items:center;gap:12px}
+.seg-badge{font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.desc{margin:6px 0 0;color:var(--muted);max-width:760px}
+.page-actions{display:flex;gap:8px;flex:none}
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--btn-shadow,none)}
+.btn-primary:hover{filter:brightness(1.07);background:var(--accent)}
+.btn-ghost{background:transparent}
+.btn-ghost.on{color:var(--warn)}
+.btn-danger{background:var(--neg);border-color:var(--neg);color:#fff}
+.btn-sm{height:30px;padding:0 10px;font-size:12px}
+.btn .ic{width:16px;height:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,var(--radius));box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
+.card-title{display:flex;align-items:baseline;gap:10px;font-family:var(--font-head);font-weight:700;font-size:14.5px;margin-bottom:14px}
+.card-title small{font-weight:500;font-size:12px;color:var(--muted);font-family:var(--font)}
+.card.sub{border-left:3px solid var(--accent)}
+.hidden{display:none!important}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.two-col>.card{margin-bottom:0}
+.two-col+.result-host{margin-top:18px}
+
+/* filters / forms */
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.wide{grid-column:span 2}
+.field label{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.field input:not([type=radio]):not([type=checkbox]),.field select,.editable input,.editable select,.tsearch,.captcha input{height:36px;padding:0 10px;border:1px solid var(--field-border,var(--border));border-radius:var(--radius);background:var(--field-bg,var(--surface));color:var(--text);width:100%;min-width:0}
+.field input:focus,.field select:focus,.tsearch:focus,.editable input:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.radios{display:flex;flex-wrap:wrap;gap:4px 14px;min-height:36px;align-items:center}
+.radio{display:flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap}
+.radio input{width:15px;height:15px;margin:0;flex:none}
+.filter-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--border)}
+.filter-presets{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);font-size:12px;cursor:pointer}
+.chip .ic{width:13px;height:13px}
+.filter-actions{display:flex;gap:8px}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.form-actions.left{justify-content:flex-start}
+.check{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:12px}
+.checks{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.checks.col{flex-direction:column;align-items:flex-start;gap:4px}
+.checks .check{margin:0}
+.check.box{border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;background:var(--surface2)}
+.checks .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.steps{display:flex;gap:0;list-style:none;padding:0;margin:0 0 18px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.steps li{flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);background:var(--surface2);border-right:1px solid var(--border)}
+.steps li:last-child{border-right:0}
+.steps li span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--border);color:var(--text)}
+.steps li.on{color:var(--text);background:var(--surface);font-weight:600}
+.steps li.on span{background:var(--accent);color:var(--accent-ink)}
+.captcha{display:flex;gap:8px}
+.cap-img{display:grid;place-items:center;padding:0 12px;border-radius:var(--radius);font:700 15px var(--font-mono);letter-spacing:.2em;background:repeating-linear-gradient(135deg,var(--surface2),var(--surface2) 4px,var(--border) 4px,var(--border) 5px);color:var(--text);white-space:nowrap}
+.gate{max-width:440px;margin:40px auto;text-align:center;padding:32px}
+.gate .ic.big{color:var(--accent);margin:0 auto 10px}
+.gate h3{font-size:18px;margin-bottom:6px}
+.gate p{color:var(--muted);margin:0 0 16px}
+.gate .field{text-align:left;margin-bottom:14px}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius);background:var(--accent-soft);color:var(--text);font-size:12.5px;margin-top:14px}
+.notice .ic{color:var(--accent);margin-top:1px}
+.notice.info{margin:0 0 18px}
+.dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px;border:2px dashed var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;color:var(--muted);margin-bottom:14px}
+.dropzone .ic{width:28px;height:28px;color:var(--accent)}
+.dropzone b{color:var(--text)}
+.dropzone.drag,.dropzone:focus-visible{border-color:var(--accent);background:var(--accent-soft);outline:none}
+.up-grid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.up-files{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.up-file{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)}
+.up-file .up-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.up-file small{color:var(--muted)}
+.up-layout{margin:0 0 12px;padding-left:22px;columns:2;column-gap:20px;font-size:12.5px}
+.up-layout li{padding:2px 0;break-inside:avoid}
+.up-rules{margin:0 0 12px;padding-left:18px;color:var(--muted);font-size:12.5px}
+.up-rules li{padding:2px 0}
+@media (max-width:900px){.up-grid{grid-template-columns:1fr}}
+.dropzone span{font-size:12px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{border:0;background:transparent;padding:10px 14px;font-weight:600;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* results */
+.result-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.result-meta{font-size:12px;color:var(--muted);display:flex;gap:8px}
+.result-meta b{color:var(--text)}
+.result-actions{display:flex;gap:8px;align-items:center}
+.tsearch{width:200px;height:30px;font-size:12px}
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);max-height:62vh}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;font-size:var(--fs-table,12.5px);font-variant-numeric:tabular-nums}
+table.grid th{position:sticky;top:0;z-index:2;text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.02em;padding:9px 10px;background:var(--th-bg);color:var(--th-text);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+table.grid th.sorted::after{content:" ↓"}
+table.grid tr.group-row th{top:0;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.08em;background:var(--th-bg2,var(--surface2));border-bottom:1px solid var(--border);cursor:default}
+table.grid tr.group-row th.grp{border-left:1px solid var(--border);border-right:1px solid var(--border)}
+table.grid tr.group-row+tr th{top:33px}
+table.grid td{padding:7px 10px;border-bottom:1px solid var(--row-line,var(--border));white-space:nowrap;vertical-align:middle}
+table.grid tbody tr:nth-child(even) td{background:var(--row-alt,transparent)}
+table.grid tbody tr:hover td{background:var(--row-hover)}
+table.grid th.num,table.grid td.num{text-align:right;font-family:var(--font-num,var(--font))}
+table.grid td.strong{font-weight:700}
+table.grid td.neg{color:var(--neg)}
+table.grid td.mono{font-family:var(--font-mono);font-size:12px}
+table.grid tfoot td{position:sticky;bottom:0;background:var(--tf-bg,var(--surface2));font-weight:700;border-top:2px solid var(--border);border-bottom:0}
+table.grid td.sel,table.grid th.sel{width:34px;text-align:center}
+.flag-dot{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;font-size:10.5px;font-weight:700}
+td.flag.y .flag-dot{background:var(--ok-soft);color:var(--ok)}
+td.flag.n .flag-dot{background:var(--neg-soft);color:var(--neg)}
+.chip-status{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.6}
+.chip-status.ok{background:var(--ok-soft);color:var(--ok)}
+.chip-status.warn{background:var(--warn-soft);color:var(--warn)}
+.chip-status.bad{background:var(--neg-soft);color:var(--neg)}
+.tlink{font-weight:600}
+.row-actions-in{display:flex;gap:4px;flex-wrap:nowrap}
+.row-actions-in a{font-size:11px;padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
+.row-actions-in a:hover{border-color:var(--accent);color:var(--accent)}
+.summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.sum{flex:1;min-width:150px;padding:10px 14px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border)}
+.sum small{display:block;font-size:11px;color:var(--muted)}
+.sum b{font-size:15px;font-family:var(--font-num,var(--font))}
+.info-strip{display:flex;flex-wrap:wrap;gap:8px 28px;padding:10px 14px;margin-bottom:12px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border)}
+.info-strip small{display:block;font-size:11px;color:var(--muted)}
+.info-strip b{font-size:13.5px}
+.empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:48px 20px;border:1px dashed var(--border);border-radius:var(--radius-lg,var(--radius));color:var(--muted);text-align:center}
+.empty .ic{width:34px;height:34px;color:var(--accent);margin-bottom:6px}
+.empty b{color:var(--text)}
+.skeleton .sk-line{height:14px;border-radius:6px;margin:10px 0;background:linear-gradient(90deg,var(--surface2),var(--border),var(--surface2));background-size:200% 100%;animation:sk 1.1s infinite}
+.sk-line.w40{width:40%}.sk-line.w70{width:70%}
+@keyframes sk{to{background-position:-200% 0}}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.stat{padding:12px 16px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);border-left-width:4px}
+.stat b{display:block;font-size:22px;font-family:var(--font-num,var(--font-head))}
+.stat small{color:var(--muted)}
+.stat.ok{border-left-color:var(--ok)}.stat.warn{border-left-color:var(--warn)}.stat.bad{border-left-color:var(--neg)}
+.qty{width:90px;height:30px;text-align:right;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--field-bg,var(--surface))}
+.editable td{padding:5px 6px}
+.editable input,.editable select{height:32px}
+
+/* dashboard */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
+.kpi,.card,.dash-grid>*,.two-col>*{min-width:0}
+.kpi{padding:14px 16px;border-radius:var(--radius-lg,var(--radius));background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);border-top:3px solid var(--accent)}
+.kpi.ok{border-top-color:var(--ok)}.kpi.warn{border-top-color:var(--warn)}.kpi.bad{border-top-color:var(--neg)}
+.kpi small{display:block;font-size:11.5px;color:var(--muted);font-weight:600}
+.kpi b{display:block;font-size:22px;margin:4px 0 2px;font-family:var(--font-num,var(--font-head));letter-spacing:-.01em}
+.kpi-sub{font-size:11.5px;color:var(--muted)}
+.kpi-note{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:11.5px;color:var(--accent);font-weight:600}
+.kpi-note .ic{width:14px;height:14px}
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.dash-grid .card{margin:0}
+.dash-grid .span2{grid-column:span 2}
+.chart svg{width:100%;height:170px;display:block}
+.chart .gridline{stroke:var(--border);stroke-width:1}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}
+.chart-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.list li:last-child{border-bottom:0}
+.list li b{display:block;font-size:13px}
+.list li small{color:var(--muted);font-size:11.5px}
+.list .amt{font-weight:700;font-family:var(--font-num,var(--font));white-space:nowrap}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick-link{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12.5px;font-weight:600}
+.quick-link:hover{border-color:var(--accent);color:var(--accent)}
+.quick-link .ic{color:var(--accent)}
+
+/* toasts / palette */
+.toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:100}
+.toast{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:var(--radius);background:var(--toast-bg,#1d2433);color:#fff;font-size:12.5px;box-shadow:var(--shadow-lg);transform:translateY(10px);opacity:0;transition:.25s}
+.toast.show{transform:none;opacity:1}
+.toast .ic{color:var(--ok-bright,#4ade80)}
+.palette{position:fixed;inset:0;background:rgba(10,14,22,.45);z-index:90;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh;backdrop-filter:blur(2px)}
+.pal-box{width:560px;max-width:92vw;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,var(--radius));box-shadow:var(--shadow-lg);overflow:hidden}
+.pal-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);color:var(--muted)}
+.pal-input{flex:1;border:0;background:transparent;font-size:15px;outline:none;color:var(--text)}
+.pal-list{max-height:380px;overflow:auto;padding:6px}
+.pal-item{display:flex;justify-content:space-between;padding:9px 12px;border-radius:var(--radius);color:var(--text)}
+.pal-item:hover{background:var(--hover)}
+.pal-item small{color:var(--muted)}
+
+/* print */
+@media print{.topbar,.sidebar,.foot,.page-actions,.filter-card,.result-tools,.toasts{display:none!important}.app{display:block}.main{padding:0}.table-wrap{max-height:none;overflow:visible}}
+
+/* responsive */
+@media (max-width:1680px){.meta span:nth-child(n+2){display:none}}
+@media (max-width:1400px){.meta{display:none}}
+@media (max-width:1200px){.kpis{grid-template-columns:repeat(3,1fr)}.dash-grid{grid-template-columns:1fr 1fr}.dash-grid .span2{grid-column:span 2}.meta{display:none}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr;grid-template-areas:"top" "main" "foot"}
+  body[data-layout=topnav] .app{grid-template-rows:var(--top-h,60px) 1fr auto;grid-template-areas:"top" "main" "foot"}
+  .sidebar{position:fixed;left:0;top:var(--top-h,60px);width:280px;height:calc(100vh - var(--top-h,60px));transform:translateX(-100%);transition:.25s;z-index:45;flex-direction:column!important;padding:0!important;border-right:1px solid var(--border)!important}
+  body.nav-open .sidebar{transform:none}
+  body.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:44}
+  .hamburger{display:grid}
+  body[data-layout=topnav] .nav,body[data-layout=rail] .nav{display:block;padding:6px 10px}
+  body[data-layout=topnav] .nav-items,body[data-layout=rail] .nav-items{position:static;display:grid;grid-template-rows:0fr;box-shadow:none;border:0;padding:0;min-width:0;background:transparent}
+  body[data-layout=topnav] .nav-sec.open>.nav-items,body[data-layout=rail] .nav-sec.open>.nav-items{grid-template-rows:1fr;display:grid}
+  body[data-layout=topnav] .nav-items-in,body[data-layout=rail] .nav-items-in{overflow:hidden;display:flex;padding-left:22px}
+  body[data-layout=rail] .nav-sec-btn{flex-direction:row;font-size:13px;text-align:left}
+  body[data-layout=topnav] .nav-item,body[data-layout=rail] .nav-item{color:var(--nav-text)}
+  .topbar-mid{display:none}.brand-text small{display:none}.user-text{display:none}
+  .main{padding:16px}.page-head{flex-direction:column;align-items:flex-start}.two-col{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.dash-grid{grid-template-columns:1fr}.dash-grid .span2{grid-column:span 1}.stat-row{grid-template-columns:repeat(2,1fr)}.field.wide{grid-column:span 1}.foot{flex-direction:column;gap:4px}
+}
+@media (max-width:600px){.kpis,.stat-row{grid-template-columns:1fr}.topbar{padding:0 10px;gap:8px}.brand-text{max-width:170px}.quick{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.filter-bar,.result-tools{flex-direction:column;align-items:stretch}.tsearch{width:100%}.steps{flex-direction:column}.steps li{border-right:0;border-bottom:1px solid var(--border)}}
+
+</style>
+<style>
+/* Motion, micro-interactions, typography scale, visual media and the portal-faithful
+   result strip. Loaded after base.css by every design. */
+:root{--t-fast:.16s;--t-med:.28s;--t-slow:.5s;--ease:cubic-bezier(.2,.7,.2,1);--ease-pop:cubic-bezier(.34,1.56,.64,1)}
+
+/* ---- typography scale: 11 / 12 / 13.5 / 15 / 18 / 24 / 32 */
+.t-xs{font-size:11px}.t-sm{font-size:12px}.t-md{font-size:13.5px}.t-lg{font-size:15px}.t-xl{font-size:18px}.t-2xl{font-size:24px}.t-3xl{font-size:32px}
+body{font-feature-settings:"tnum" 1}
+h1{line-height:1.15}
+.card-title{letter-spacing:.01em}
+.field label{line-height:1.2}
+
+/* ---- page and card entrance */
+.main.enter>.page-head{animation:fade-up var(--t-slow) var(--ease) both}
+.main.enter>.page-body{animation:fade-up var(--t-slow) var(--ease) .06s both}
+@keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kpi{animation:fade-up var(--t-slow) var(--ease) both;animation-delay:calc(var(--i,0)*60ms)}
+.dash-grid .card{animation:fade-up var(--t-slow) var(--ease) both;animation-delay:.12s}
+.dash-grid .card:nth-child(2){animation-delay:.18s}.dash-grid .card:nth-child(3){animation-delay:.24s}.dash-grid .card:nth-child(4){animation-delay:.3s}.dash-grid .card:nth-child(5){animation-delay:.36s}.dash-grid .card:nth-child(6){animation-delay:.42s}.dash-grid .card:nth-child(7){animation-delay:.48s}
+table.grid tbody tr{animation:row-in var(--t-med) var(--ease) both;animation-delay:calc(var(--i,0)*18ms)}
+@keyframes row-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.nav-sec.open>.nav-items .nav-item{animation:fade-up var(--t-med) var(--ease) both}
+.pal-box{animation:fade-up var(--t-med) var(--ease) both}
+
+/* ---- hover and press */
+.card{transition:box-shadow var(--t-med) var(--ease),transform var(--t-med) var(--ease)}
+.kpi,.quick-link,.sub-report{transition:transform var(--t-med) var(--ease),box-shadow var(--t-med) var(--ease),border-color var(--t-fast)}
+.kpi:hover,.quick-link:hover,.sub-report:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.btn{position:relative;overflow:hidden;transition:background var(--t-fast),border-color var(--t-fast),transform var(--t-fast),box-shadow var(--t-fast),color var(--t-fast)}
+.btn:active{transform:scale(.97)}
+.btn-primary:hover{box-shadow:0 6px 16px -6px var(--accent)}
+.btn-pill{border-radius:999px;background:var(--surface2);color:var(--muted)}
+.btn-go{min-width:96px;justify-content:center}
+.btn.done{color:var(--ok);border-color:var(--ok)}
+.ripple{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:currentColor;opacity:.25;pointer-events:none;animation:ripple .6s var(--ease) forwards}
+@keyframes ripple{to{transform:scale(28);opacity:0}}
+.nav-sec-btn,.tab,.chip{position:relative;overflow:hidden}
+.nav-sec-btn,.nav-item{transition:background var(--t-fast),color var(--t-fast),padding-left var(--t-fast)}
+.nav-item:hover{padding-left:18px}
+.pal-item{transition:background var(--t-fast),padding-left var(--t-fast)}
+.pal-item:hover{padding-left:16px}
+.btn-ghost.on{color:var(--warn)}
+.btn-ghost.on .ic{fill:var(--warn)}
+.btn.pop .ic{animation:pop .4s var(--ease-pop)}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.5) rotate(-12deg)}100%{transform:scale(1)}}
+.seg{transition:background var(--t-med) var(--ease),color var(--t-med)}
+.toast{transition:transform var(--t-med) var(--ease-pop),opacity var(--t-med)}
+.tool{transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast)}
+
+/* ---- inputs */
+.field input,.field select,.tsearch,.editable input,.editable select,.qty{transition:border-color var(--t-fast),box-shadow var(--t-fast),background var(--t-fast)}
+.field input:focus,.field select:focus,.tsearch:focus,.editable input:focus,.qty:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field:focus-within label{color:var(--accent)}
+input[type=checkbox]{appearance:none;width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;background:var(--surface);display:inline-grid;place-items:center;cursor:pointer;transition:background var(--t-fast),border-color var(--t-fast);vertical-align:-3px;margin:0 2px}
+input[type=checkbox]::before{content:"";width:9px;height:5px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) scale(0);transition:transform var(--t-fast) var(--ease-pop);margin-top:-2px}
+input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+input[type=checkbox]:checked::before{transform:rotate(-45deg) scale(1)}
+input[type=radio]{accent-color:var(--accent)}
+.radio{cursor:pointer;padding:3px 8px;border-radius:999px;transition:background var(--t-fast)}
+.radio:hover{background:var(--surface2)}
+
+/* ---- tables */
+table.grid th{transition:background var(--t-fast),color var(--t-fast)}
+table.grid th:hover{color:var(--accent)}
+table.grid th.sorted::after{content:none}
+.sort-ic{display:inline-block;width:0;height:0;margin-left:6px;border:4px solid transparent;border-top-color:currentColor;opacity:0;transform:translateY(2px) rotate(0);transition:opacity var(--t-fast),transform var(--t-med) var(--ease)}
+th.sorted .sort-ic{opacity:.9}
+th.sorted.desc .sort-ic{transform:translateY(-2px) rotate(180deg)}
+.row-actions-in a{opacity:.55;transition:opacity var(--t-fast),border-color var(--t-fast),color var(--t-fast)}
+tr:hover .row-actions-in a{opacity:1}
+table.grid tbody tr td{transition:background var(--t-fast)}
+td.pos{color:var(--ok)}
+tr.bal-row td{background:var(--surface2)!important;font-weight:700;animation:none}
+
+/* ---- visual media */
+.illus-wrap{width:160px;max-width:60%;margin:0 auto 8px}
+.illus{width:100%;height:auto;display:block}
+.empty .illus-wrap{animation:float 4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.gate .illus-wrap{width:120px}
+.dropzone .illus-wrap{width:110px;margin-bottom:2px}
+.mono-badge{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;font:700 11px var(--font);letter-spacing:.02em;color:hsl(var(--hue) 55% 32%);background:hsl(var(--hue) 70% 92%);border:1px solid hsl(var(--hue) 50% 80%);flex:none}
+.mono-badge.sm{width:24px;height:24px;border-radius:7px;font-size:9.5px}
+td.with-badge{display:flex;align-items:center;gap:8px}
+.list .with-badge{display:flex;align-items:center;gap:10px}
+.spark{width:64px;height:24px;display:inline-block;margin-left:auto;margin-right:12px}
+.spark svg{width:100%;height:100%}
+.spark path{fill:none;stroke-width:1.8;stroke:var(--ok)}
+.spark.down path{stroke:var(--neg)}
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut{width:150px;flex:none}
+.donut svg{width:100%;height:auto}
+.seg-arc{animation:arc-in 1.2s var(--ease) both}
+@keyframes arc-in{from{opacity:0}to{opacity:1}}
+.donut-big{font:700 15px var(--font-num,var(--font));fill:var(--text)}
+.donut-small{font:11px var(--font);fill:var(--muted)}
+.legend{list-style:none;margin:0;padding:0;flex:1}
+.legend li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--border)}
+.legend li:last-child{border:0}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend span{flex:1}
+.legend b{font-family:var(--font-num,var(--font))}
+.sub-reports{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.sub-report{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);cursor:pointer;text-align:left;color:var(--text)}
+.sub-report .ic{color:var(--accent);margin-bottom:4px}
+.sub-report b{font-size:13px}
+.sub-report small{color:var(--muted);font-size:11.5px}
+.sub-report.on{border-color:var(--accent);background:var(--accent-soft)}
+
+/* ---- portal-faithful result strip */
+.rstrip{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:-18px -20px 14px;padding:10px 16px;background:var(--strip-bg,var(--surface2));border-bottom:1px solid var(--border);border-radius:var(--radius-lg,var(--radius)) var(--radius-lg,var(--radius)) 0 0}
+.rstrip-l{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.rs{display:flex;flex-direction:column;line-height:1.2}
+.rs small{font-size:10.5px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.rs b{font-size:12.5px}
+.rs-sel select{height:28px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:0 6px;font-size:12px;margin-top:2px;color:var(--text)}
+.rstrip-r{display:flex;align-items:center;gap:4px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px;padding:4px 6px;border:0;border-radius:var(--radius);background:transparent;color:var(--muted);cursor:pointer;font-size:10px}
+.tool:hover{background:var(--surface);color:var(--accent);transform:translateY(-1px)}
+.tool .ic{width:18px;height:18px}
+.tool:last-child:hover{color:var(--neg)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (max-width:900px){.sub-reports{grid-template-columns:1fr 1fr}.rstrip{margin:-16px -16px 12px}.donut-wrap{flex-direction:column}}
+
+</style>
+<style>
+/* Design 10 — Sapphire One. Built from a first-hand look at Angel One's web pages
+   (1 Oct 2026): royal blue (#2f54c9 family) buttons and links, navy (#152445) footer and
+   dark surfaces, pale blue panels (#eef2fb), outlined blue secondary buttons, bold brand
+   lettering. Layout: icon rail with fly-out menus, navy rail. */
+:root{
+  --font:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  --font-head:"Segoe UI Semibold","Segoe UI",system-ui,sans-serif;
+  --font-mono:Consolas,"Cascadia Mono",monospace;
+  --font-num:"Segoe UI",system-ui,sans-serif;
+  --fs:13.5px;--fs-table:12.5px;
+  --bg:#f3f5fa;--surface:#ffffff;--surface2:#eef2fb;--border:#dde3f0;--hover:#e8edf9;
+  --text:#152445;--muted:#5f6b85;
+  --accent:#2f54c9;--accent-ink:#ffffff;--accent-soft:#e3e9fb;
+  --ok:#188a4f;--ok-soft:#dff3e8;--neg:#d23b2f;--neg-soft:#fbe4e2;--warn:#b7791f;--warn-soft:#fdf0d5;
+  --topbar-bg:#ffffff;--topbar-text:#152445;--topbar-border:#dde3f0;--topbar-field:#f3f5fa;--topbar-field-border:#dde3f0;--topbar-shadow:0 1px 0 #dde3f0;
+  --nav-bg:#152445;--nav-text:#b9c3dd;--nav-border:#152445;--nav-hover:rgba(255,255,255,.08);--nav-active:#2f54c9;--nav-active-text:#ffffff;--nav-line:rgba(255,255,255,.12);
+  --th-bg:#eef2fb;--th-text:#152445;--th-bg2:#e3e9fb;--row-hover:#f3f5fa;--row-alt:transparent;--tf-bg:#eef2fb;
+  --strip-bg:#eef2fb;
+  --radius:6px;--radius-lg:10px;--mark-radius:6px;
+  --shadow:0 1px 2px rgba(21,36,69,.06);--shadow-lg:0 16px 40px rgba(21,36,69,.22);--btn-shadow:0 4px 12px rgba(47,84,201,.3);
+  --top-h:62px;--h1:24px;--h1-w:700;
+  --toast-bg:#152445;--foot-bg:#152445;
+}
+.foot{color:#b9c3dd;border-top:0}
+.brand-mark{background:#2f54c9;color:#fff;clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0;font-size:0}
+.brand-text b{font-weight:800;letter-spacing:.02em;font-size:15px}
+.brand-text small{color:#2f54c9;opacity:1;font-weight:600}
+body[data-layout=rail] .nav-sec-btn{color:#b9c3dd}
+body[data-layout=rail] .nav-sec.current>.nav-sec-btn{background:#2f54c9;color:#fff}
+body[data-layout=rail] .nav-items{border-color:#dde3f0}
+.btn{border-radius:6px;font-weight:600}
+.btn-primary{background:#2f54c9;border-color:#2f54c9}
+.btn-ghost,.btn-pill{border-color:#2f54c9;color:#2f54c9;background:#fff}
+.btn-ghost:hover,.btn-pill:hover{background:#e3e9fb}
+.page-actions .btn-ghost{border-color:var(--border);color:var(--text)}
+.btn-danger{background:#d23b2f;border-color:#d23b2f}
+.seg.on{background:#2f54c9}
+.seg-badge{background:#e3e9fb;color:#2f54c9}
+.avatar{background:#152445;color:#fff}
+.card{border-radius:10px}
+.card-title{color:#152445}
+.kpi{border-top:0;border-left:4px solid #2f54c9;border-radius:10px}
+.kpi.ok{border-left-color:var(--ok)}.kpi.warn{border-left-color:var(--warn)}.kpi.bad{border-left-color:var(--neg)}
+.kpi b{font-size:23px;color:#152445}
+table.grid th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.tabs .tab.on{border-bottom-color:#2f54c9;color:#2f54c9}
+.quick-link{background:#eef2fb;border-color:#dde3f0}
+.sub-report{background:#eef2fb}
+.sub-report.on{background:#e3e9fb;border-color:#2f54c9}
+</style>
+</head>
+<body data-layout="rail">
+<script>
+/* Dummy data for the back-office redesign prototypes.
+   Everything here is fictitious. No real client, PAN, mobile or bank data is used. */
+(function () {
+  'use strict';
+
+  // Deterministic PRNG so every design shows identical data.
+  let seed = 20260930;
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  function ri(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+  function pick(arr) { return arr[Math.floor(rnd() * arr.length)]; }
+  function reset(s) { seed = s || 20260930; }
+
+  const FIRM = {
+    name: 'ABC SECURITIES PRIVATE LIMITED',
+    short: 'ABC Securities',
+    memberCode: '12345',
+    licence: 'OLK000000',
+    finYear: '01-APR-2026 - 31-MAR-2027',
+    version: 'ver 6.0.003  Build 11165',
+    user: { id: 'U1001', name: 'DEMO USER', type: 'Client', branch: 'HO' }
+  };
+
+  const CLIENTS = [
+    ['C1001', 'AARAV MEHTA', 'Maharashtra', 'HO', 'RM01'],
+    ['C1002', 'PRIYA NAIR', 'Kerala', 'HO', 'RM01'],
+    ['C1003', 'ROHAN DESAI HUF', 'Gujarat', 'AHM', 'RM02'],
+    ['C1004', 'KAVITA IYER', 'Tamil Nadu', 'CHN', 'RM03'],
+    ['C1005', 'VIKRAM SINGH', 'Rajasthan', 'JPR', 'RM02'],
+    ['C1006', 'NEHA KAPOOR', 'Delhi', 'DEL', 'RM04'],
+    ['C1007', 'SIDDHARTH RAO', 'Karnataka', 'BLR', 'RM03'],
+    ['C1008', 'ANANYA BOSE', 'West Bengal', 'KOL', 'RM05'],
+    ['C1009', 'MANISH AGARWAL', 'Rajasthan', 'JPR', 'RM02'],
+    ['C1010', 'SUNITA VERMA', 'Uttar Pradesh', 'LKO', 'RM04'],
+    ['C1011', 'ARJUN PATEL', 'Gujarat', 'AHM', 'RM02'],
+    ['C1012', 'MEERA KRISHNAN', 'Tamil Nadu', 'CHN', 'RM03']
+  ].map(c => ({ code: c[0], name: c[1], state: c[2], branch: c[3], rm: c[4], pan: 'XXXXXX' + ri(100, 999) + 'X' }));
+
+  const SCRIPS = [
+    ['RELIANCE', 'RELIANCE INDUSTRIES LTD', 'INE002A01018', 2940.50],
+    ['TCS', 'TATA CONSULTANCY SERVICES', 'INE467B01029', 4112.10],
+    ['INFY', 'INFOSYS LTD', 'INE009A01021', 1836.40],
+    ['HDFCBANK', 'HDFC BANK LTD', 'INE040A01034', 1668.25],
+    ['ICICIBANK', 'ICICI BANK LTD', 'INE090A01021', 1244.70],
+    ['SBIN', 'STATE BANK OF INDIA', 'INE062A01020', 812.35],
+    ['ITC', 'ITC LTD', 'INE154A01025', 462.15],
+    ['LT', 'LARSEN & TOUBRO LTD', 'INE018A01030', 3588.90],
+    ['BHARTIARTL', 'BHARTI AIRTEL LTD', 'INE397D01024', 1592.60],
+    ['TATAMOTORS', 'TATA MOTORS LTD', 'INE155A01022', 986.40],
+    ['WIPRO', 'WIPRO LTD', 'INE075A01022', 548.30],
+    ['AXISBANK', 'AXIS BANK LTD', 'INE238A01034', 1178.55],
+    ['MARUTI', 'MARUTI SUZUKI INDIA LTD', 'INE585B01010', 12440.00],
+    ['SUNPHARMA', 'SUN PHARMACEUTICAL IND', 'INE044A01036', 1722.85]
+  ].map(s => ({ code: s[0], name: s[1], isin: s[2], rate: s[3] }));
+
+  const CONTRACTS = ['NIFTY 30OCT2026 FUT', 'BANKNIFTY 30OCT2026 FUT', 'NIFTY 30OCT2026 25000 CE', 'NIFTY 30OCT2026 24500 PE', 'RELIANCE 30OCT2026 FUT', 'HDFCBANK 30OCT2026 FUT', 'BANKNIFTY 30OCT2026 52000 CE'];
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function fmtDate(d) { return pad(d.getDate()) + '-' + MONTHS[d.getMonth()] + '-' + d.getFullYear(); }
+  function dateBack(days) { const d = new Date(2026, 8, 30); d.setDate(d.getDate() - days); return fmtDate(d); }
+  function isoBack(days) { const d = new Date(2026, 8, 30); d.setDate(d.getDate() - days); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  // Indian number formatting: 12,34,567.89
+  function inr(n, dp) {
+    if (n === null || n === undefined || n === '') return '';
+    const neg = n < 0; n = Math.abs(n);
+    const f = n.toFixed(dp === undefined ? 2 : dp);
+    let [i, d] = f.split('.');
+    let last3 = i.slice(-3), rest = i.slice(0, -3);
+    if (rest) last3 = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last3;
+    return (neg ? '-' : '') + last3 + (d !== undefined ? '.' + d : '');
+  }
+  function settNo(i) { return '2026' + pad(150 + (i % 40)); }
+
+  // Row generator driven by column types.
+  function genRows(cols, n, s) {
+    reset(s || 7);
+    const rows = [];
+    for (let r = 0; r < n; r++) {
+      const cl = CLIENTS[r % CLIENTS.length], sc = SCRIPS[(r * 3 + ri(0, 2)) % SCRIPS.length];
+      const row = cols.map(c => {
+        switch (c.t) {
+          case 'client': return cl.code;
+          case 'cname': return cl.name;
+          case 'branch': return cl.branch;
+          case 'rm': return cl.rm;
+          case 'state': return cl.state;
+          case 'pan': return cl.pan;
+          case 'group': return pick(['HO', 'PLG', 'AHM', 'JPR', 'BLR']);
+          case 'scrip': return sc.code;
+          case 'sname': return sc.name;
+          case 'isin': return sc.isin;
+          case 'rate': return inr(sc.rate * (0.97 + rnd() * 0.06));
+          case 'contract': return pick(CONTRACTS);
+          case 'date': return dateBack(ri(0, 60));
+          case 'sett': return settNo(r);
+          case 'int': return ri(c.min === undefined ? 1 : c.min, c.max || 500) * (c.lot || 1);
+          case 'num': { const v = (rnd() * (c.max || 250000)) * (c.signed && rnd() < 0.4 ? -1 : 1); return Math.round(v * 100) / 100; }
+          case 'pct': return (rnd() * (c.max || 8) - (c.signed ? (c.max || 8) / 2 : 0)).toFixed(2) + '%';
+          case 'flag': return rnd() < 0.82 ? 'Y' : 'N';
+          case 'status': return pick(c.o || ['Open', 'Processed', 'Rejected', 'Pending']);
+          case 'exch': return pick(c.o || ['NSE', 'BSE']);
+          case 'seg': return pick(['Capital', 'F&O']);
+          case 'text': return pick(c.o || ['—']);
+          case 'ref': return 'REF' + ri(100000, 999999);
+          case 'email': return cl.code.toLowerCase() + '@example.com';
+          case 'time': return pad(ri(9, 15)) + ':' + pad(ri(0, 59)) + ':' + pad(ri(0, 59));
+          case 'link': return c.o || 'View';
+          default: return '';
+        }
+      });
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // Financial-ledger style running balance rows
+  function ledgerRows(n) {
+    reset(11);
+    const parts = ['Bill for Sett.No. ', 'Payment received - NEFT ', 'Payout - RTGS ', 'Margin pledge released ', 'DP charges ', 'Interest on delayed payment ', 'Journal - F&O MTM ', 'Bill for Sett.No. '];
+    let bal = 125430.50; const rows = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const p = pick(parts); const isBill = p.startsWith('Bill') || p.startsWith('Payout') || p.startsWith('DP') || p.startsWith('Interest');
+      const amt = Math.round(rnd() * 90000 * 100) / 100;
+      const dr = isBill ? amt : 0, cr = isBill ? 0 : amt;
+      bal = bal - dr + cr;
+      rows.unshift([dateBack(i * 2), p + (p.startsWith('Bill') ? settNo(i) : ''), isBill ? 'B' + ri(10000, 99999) : 'CHQ' + ri(100000, 999999), dateBack(i * 2), dr ? inr(dr) : '', cr ? inr(cr) : '', inr(bal) + (bal < 0 ? ' Dr' : ' Cr')]);
+    }
+    return { rows, opening: inr(125430.50) + ' Cr', closing: inr(bal) + (bal < 0 ? ' Dr' : ' Cr') };
+  }
+
+  window.BO = { FIRM, CLIENTS, SCRIPS, CONTRACTS, rnd, ri, pick, reset, inr, fmtDate, dateBack, isoBack, settNo, genRows, ledgerRows, pad };
+})();
+
+</script>
+<script>
+/* Screen specification for the back-office redesign.
+   Every menu item of the live cApexWeb client portal is represented here, with the
+   same filters (labels kept) and the same result columns, so the prototypes are a
+   like-for-like redesign rather than a mock-up of a few pages. */
+(function () {
+  'use strict';
+  const CL = () => BO.CLIENTS.map(c => c.code + ' - ' + c.name);
+  const YN = ['Y', 'N'], NY = ['N', 'Y'];
+
+  // Filter helper: [label, type, options, extra]
+  const f = (l, t, o, x) => Object.assign({ l, t, o }, x || {});
+  // Column helper: header, type, extra
+  const c = (h, t, x) => Object.assign({ h, t: t || 'text' }, x || {});
+  const CLIENT = () => f('Client Code', 'select', CL());
+  const DATE = l => f(l || 'Date', 'date');
+
+  const NAV = [
+    { key: 'home', label: 'Dashboard', icon: 'home', items: [['dashboard', 'Dashboard']] },
+    { key: 'profile', label: 'Profile', icon: 'user', items: [['client-directory', 'Client Directory']] },
+    { key: 'financial', label: 'Financial', icon: 'ledger', items: [
+      ['drcr', 'Dr/Cr List'], ['comb-drcr', 'Combined Dr/Cr List'], ['fin-ledger', 'Financial Ledger'], ['det-fin-ledger', 'Detail Financial Ledger'],
+      ['ageing', 'Ageing'], ['portfolio', 'Portfolio Reports'], ['sett30', 'Sett. 30 Days'], ['sett90', 'Sett. 90 Days'], ['glance', 'Client at Glance'],
+      ['ye-summary', 'Year-End Summary'], ['ye-report', 'Year-End Report'], ['agts', 'AGTS'] ] },
+    { key: 'billing', label: 'Billing', icon: 'bill', items: [['obligation', 'Obligation']] },
+    { key: 'report', label: 'Report', icon: 'report', items: [
+      ['trade-conf', 'Trade Confirmation'], ['sett-summary', 'Settlement Summary'], ['pcr', 'Payment Control (PCR)'], ['short-delivery', 'Short Delivery'],
+      ['stt', 'STT Liabilities'], ['annexure-10db', 'Annexure 10DB'], ['demat-holding', 'Demat Holding / Ledger'], ['holding-scrip', 'Holding (Scrip-wise)'],
+      ['demat-ledger', 'Demat Ledger'], ['net-position', 'Net Position'], ['sec-valuation', 'Security Valuation'], ['stock-valuation', 'Stock Valuation'],
+      ['stock-debit', 'Stock Against Debit'], ['trx-ledger', 'Transaction Ledger'], ['comb-margin', 'Combined Margin'], ['holding-fin', 'Holding cum Financial'],
+      ['brokerage', 'Brokerage Query'], ['contract-note', 'Contract Note'], ['scrip-costing', 'Scrip Costing'] ] },
+    { key: 'files', label: 'File Mgmnt', icon: 'folder', items: [['file-mgmt', 'File Management']] },
+    { key: 'request', label: 'Request', icon: 'send', items: [
+      ['payments', 'Payments'], ['change-req', 'Change Request'], ['cdsl-pledge', 'CDSL Normal Pledge'], ['cdsl-margin-pledge', 'CDSL Margin Pledge'],
+      ['cdsl-margin-unpledge', 'CDSL Margin UnPledge'], ['cdsl-destat', 'CDSL Destat Setup'], ['transfer-status', 'Transfer Status'], ['buyback', 'Buyback Request'],
+      ['ofs-block', 'OFS Fund Block'], ['ofs-request', 'OFS Request'], ['ofs-orders', 'OFS Orders Log'] ] },
+    { key: 'upload', label: 'Upload', icon: 'upload', items: [
+      ['upload-0', 'Document Upload'], ['upload-1', 'KYC Modification Proof'], ['upload-2', 'Income Proof (Annual)'], ['upload-3', 'Bank Proof / Mandate'],
+      ['upload-4', 'Nomination Form'], ['upload-5', 'DDPI / POA'], ['upload-6', 'Trade File Upload'], ['upload-7', 'Bank Statement (Receipts)'],
+      ['upload-8', 'Payment / Receipt Vouchers'], ['upload-9', 'Journal Vouchers'], ['upload-10', 'Client Master'], ['upload-11', 'Margin / Collateral File'],
+      ['upload-12', 'Pledge Response File'], ['upload-13', 'DP Holding File'], ['upload-14', 'Brokerage Slab'], ['upload-log', 'Upload History'] ] },
+    { key: 'admin', label: 'Admin', icon: 'gear', items: [['admin', 'Admin & Settings']] }
+  ];
+
+  const S = {};
+
+  S['dashboard'] = { title: 'Dashboard', kind: 'dashboard', desc: 'A single view of ledger, holdings, margin, settlements and pending requests.' };
+
+  S['client-directory'] = {
+    title: 'Client Directory', kind: 'report', badges: true, desc: 'Search clients by name, code, PAN, mobile, email or group and jump to their ledgers and bills.',
+    filters: [f('Search On', 'radio', ['Name', 'Code', 'PAN No', 'Mobile No', 'Email', 'Group']), f('Search text', 'text', null, { ph: 'Type a name, code or PAN…', wide: true })],
+    go: 'Search',
+    columns: [c('S/Branch', 'branch'), c('RM/TL', 'rm'), c('Client Cd', 'client'), c('Client Name', 'cname'), c('State', 'state'), c('PAN', 'pan'), c('Ann.Inc.Upd', 'text', { o: ['Updated', 'Due'] }),
+      c('PayFlag', 'flag'), c('POA', 'flag'), c('DDPI', 'flag'), c('KRA', 'flag'), c('CKYC', 'flag'), c('FATCA', 'flag'), c('UID', 'flag'), c('Nom.Flg', 'flag'), c('Bank Mandate', 'flag')],
+    rowActions: ['Chg.Req', 'Banks', 'Depo.', 'Detail', 'Brok CM', 'Brok F&O', 'FA Det', 'FA Con', 'Dem Lgr', 'Obli.Bill'], rows: 12
+  };
+
+  S['drcr'] = {
+    title: 'Debtor / Creditor List', kind: 'report', desc: 'Financial balances of all clients as on a date, with settlement-off, margin and unrealised voucher columns.',
+    filters: [DATE('Financial Balance As on Date'), f('Balance Filter', 'select', ['Both', 'Debit Only', 'Credit Only']), f('Pending Trxn. Balance Reqd.', 'select', YN), DATE('O/S Trxn. As on Date'),
+      f('Margin (F&O) Required', 'select', YN), f('Exclude Margin Entries from Balance', 'select', YN), DATE('Margin Date'), f('Mobile Nos Required', 'select', YN),
+      f('Amount Filter (−ve for debit)', 'number'), f('Group Client', 'text'), f('Zero Balance Required', 'select', NY), f('Order By', 'select', ['Alphabetical', 'Code Wise', 'Group/Client Wise'])],
+    columns: [c('Group', 'group'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Sett Off', 'num', { max: 50000 }), c('Debit', 'num'), c('Credit', 'num'), c('Trxn. Value', 'num'),
+      c('Net Balance', 'num', { signed: true, bold: true }), c('Security A/c Bal.', 'num'), c('Margin (Day)', 'num', { max: 80000 }), c('UnReal Vou.', 'num', { max: 20000 })], totals: true, rows: 12
+  };
+
+  S['comb-drcr'] = {
+    title: 'Combined Debtor / Creditor List', kind: 'report', desc: 'Financial balance across all segments as on a date.',
+    filters: [DATE('Financial Balance (All Segments) As on Date'), f('Ignore Margin Transactions', 'select', YN), f('Zero Balance Client Required', 'select', YN), f('Ignore MTF Transactions', 'select', YN), f('Group Client', 'text')],
+    columns: [c('Group', 'group'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Capital', 'num', { signed: true }), c('F&O', 'num', { signed: true, max: 90000 }), c('Commodity', 'num', { signed: true, max: 40000 }), c('Currency', 'num', { signed: true, max: 15000 }), c('Net Balance', 'num', { signed: true, bold: true })], totals: true, rows: 12
+  };
+
+  S['fin-ledger'] = {
+    title: 'Financial Ledger', kind: 'ledger', desc: 'Date-wise ledger with running balance, opening and closing balances.',
+    filters: [CLIENT(), DATE('Date From'), DATE('Date To'), f('Seg. Selection', 'select', ['Combined', 'Cap+Cur+Com', 'Cap+Cur', 'NSE', 'BSE', 'MCX', 'F&O', 'Cash']),
+      f('Trxn. Filter', 'select', ['All', 'Bills only', 'Payments only', 'Journals only', 'Margin only', 'DP charges', 'Interest']), f('MTF Trxn. Filter', 'select', ['Without MTF A/c', 'MTF A/c Only', 'Include MTF Trxn.']), f('Text Search on Narration', 'text', null, { wide: true })],
+    columns: [c('Fin. Date'), c('Particulars', 'text', { wide: true }), c('Bill No / Chq. No'), c('Trx. Dt / Chq #'), c('Debit', 'num'), c('Credit', 'num'), c('Balance', 'num', { bold: true })], rows: 24
+  };
+
+  S['det-fin-ledger'] = {
+    title: 'Detail Financial Ledger', kind: 'ledger', desc: 'Ledger with exchange-wise detail, difference summary and delivery detail views.',
+    filters: [CLIENT(), DATE('Date From'), DATE('Date To'), f('Exchange', 'select', ['NSE', 'BSE', 'F&O', 'MCX', 'ALL']), f('Report Type', 'select', ['Details', 'Diff. Summary / Delv. Detail', 'Diff / Delv Scrip-wise Summary']), f('Ignore Margin Entries', 'select', NY)],
+    columns: [c('Fin. Date'), c('Particulars', 'text', { wide: true }), c('Bill No / Chq. No'), c('Trx. Dt / Chq #'), c('Debit', 'num'), c('Credit', 'num'), c('Balance', 'num', { bold: true })], rows: 24
+  };
+
+  S['ageing'] = {
+    title: 'Ageing Report (FIFO Method)', kind: 'report', desc: 'Debit balances bucketed by age, FIFO method.',
+    filters: [DATE('As On Date'), f('Report Sequence', 'select', ['Code Wise', 'Alphabetical', 'Group/Client Wise']), f('Unrealised Voucher Total Reqd', 'select', NY), f('Ignore Margin Transactions', 'select', NY), f('Min Balance', 'number')],
+    columns: [c('Client', 'client'), c('Client Name', 'cname'), c('0–3', 'num', { max: 20000 }), c('4–7', 'num', { max: 20000 }), c('8–15', 'num', { max: 15000 }), c('16–30', 'num', { max: 15000 }), c('31–45', 'num', { max: 10000 }), c('46–60', 'num', { max: 8000 }),
+      c('61–90', 'num', { max: 6000 }), c('91–120', 'num', { max: 4000 }), c('121–180', 'num', { max: 3000 }), c('Above 180', 'num', { max: 2000 }), c('Total Debit', 'num', { bold: true }), c('UnReal Vouch.', 'num', { max: 5000 })], totals: true, rows: 12,
+    groupHeader: [['', 2], ['Between (days)', 10], ['', 2]]
+  };
+
+  S['portfolio'] = {
+    title: 'Portfolio Tracker', kind: 'report', badges: true, desc: 'Long / short term report with realised and unrealised gain or loss.',
+    filters: [f('Report Type', 'select', ['As on Date (Financial)', 'Date Range']), DATE('Financial Date As On'), DATE('Fin. Date From'), DATE('Financial Date To'), f('Segment Selection', 'select', ['Capital', 'F&O']),
+      f('Detail / Summary', 'select', ['Summary', 'Detail', 'Date Wise Single Row']), CLIENT(), f('Closing Stock Only', 'select', YN), f('Ignore Closing Stocks', 'select', YN)],
+    columns: [c('Scrip Name', 'sname'), c('ISIN', 'isin'), c('Buy Qty', 'int'), c('Sell Qty', 'int'), c('Buy Avg', 'rate'), c('Sell Avg', 'rate'), c('Closing Qty', 'int', { max: 300 }), c('Closing Price', 'rate'), c('Change %', 'pct', { signed: true }),
+      c('Short Term', 'num', { signed: true, max: 60000 }), c('Long Term', 'num', { signed: true, max: 120000 }), c('Speculative', 'num', { signed: true, max: 9000 }), c('Open Pos', 'int', { max: 200 }), c('GF Value', 'num')], totals: true, rows: 14,
+    summary: [['Realised Gain/Loss', '1,84,320.45'], ['Short Term', '62,110.20'], ['Long Term', '1,22,210.25'], ['Closing Stock Value', '18,42,905.00'], ['Expenses', '9,870.12'], ['Gross P&L', '1,74,450.33']]
+  };
+
+  const SETT = { kind: 'report', filters: [], columns: [c('Report Date', 'date'), c('Branch', 'branch'), c('Group', 'group'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Amount', 'num'), c('Last Trade Date', 'date'), c('Last Sett-Off Date', 'date'),
+      c('Last Pay. Recvd. Date', 'date'), c('Non-Trading Days', 'int', { max: 90 }), c('S/Off Remaining Days', 'int', { max: 30 }), c('Status', 'status', { o: ['Due', 'Settled', 'Overdue'] }), c('Contact No', 'text', { o: ['98XXXXXX01', '97XXXXXX45', '99XXXXXX78'] })], rows: 10, auto: true };
+  S['sett30'] = Object.assign({ title: 'Quarterly Settlement — 30 Days', desc: 'Clients whose running account must be settled within 30 days.' }, SETT);
+  S['sett90'] = Object.assign({ title: 'Quarterly Settlement — 90 Days', desc: 'Clients whose running account must be settled within 90 days.' }, SETT);
+
+  S['glance'] = {
+    title: 'Client at Glance', kind: 'report', desc: 'Combined ledger, stock collateral, margin and open position on one line per client.',
+    filters: [DATE('As On Date'), CLIENT()],
+    columns: [c('Branch/Group', 'group'), c('Client Cd', 'client'), c('Client Name', 'cname'), c('Combined Ledger Bal', 'num', { signed: true }), c('Stock Collateral Value', 'num'), c('Margin Imposed', 'num', { max: 90000 }),
+      c('Open Position Future', 'num', { max: 150000 }), c('Commodity', 'num', { max: 40000 }), c('Currency', 'num', { max: 12000 }), c('Final Balance', 'num', { signed: true, bold: true })], totals: true, rows: 12
+  };
+
+  S['ye-summary'] = {
+    title: 'Year-End Summary Report', kind: 'report', desc: 'Segment-wise turnover, charges and profit or loss for the financial year.',
+    filters: [CLIENT(), DATE('From Date'), DATE('To Date'), f('P&L Only', 'select', ['Yes', 'No'])],
+    columns: [c('Segment', 'text', { o: ['Capital (NSE)', 'Capital (BSE)', 'F&O (NSE)', 'Currency', 'Commodity (MCX)'] }), c('Turnover Buy', 'num', { max: 5000000 }), c('Turnover Sell', 'num', { max: 5000000 }), c('Brokerage', 'num', { max: 25000 }), c('STT / CTT', 'num', { max: 12000 }), c('GST', 'num', { max: 5000 }), c('Exch. & Other Charges', 'num', { max: 3000 }), c('Net P&L', 'num', { signed: true, bold: true })], totals: true, rows: 5
+  };
+
+  S['ye-report'] = {
+    title: 'Year-End Reports', kind: 'report', desc: 'Download the year-end document set for a client.',
+    filters: [f('Client Code', 'text')],
+    columns: [c('Report', 'text', { o: ['Financial Ledger (FY)', 'Holding Statement (31-Mar)', 'P&L Statement', 'Capital Gains Statement', 'STT Certificate', 'Annual Global Statement'] }), c('Period', 'text', { o: ['01-Apr-2025 to 31-Mar-2026'] }), c('Generated On', 'date'), c('Format', 'text', { o: ['PDF', 'Excel'] }), c('Download', 'link', { o: 'Download' })], rows: 6, auto: true
+  };
+
+  S['agts'] = {
+    title: 'Annual Global Transaction Statement (AGTS)', kind: 'report', desc: 'Exchange-prescribed annual statement across segments.',
+    filters: [f('Segment', 'select', ['CAP', 'FO', 'ALL']), DATE('Report Date'), DATE('Financial Year From'), DATE('Financial Year To'), DATE('Trade Date From'), DATE('Trade Date To'), DATE('F&O Date From'), DATE('F&O Date To'), CLIENT(), f('Branch', 'text'), f('Trade Basis', 'select', ['Settlement', 'Trade'])],
+    columns: [c('Date', 'date'), c('Segment', 'seg'), c('Exchange', 'exch'), c('Scrip / Contract', 'sname'), c('Buy Qty', 'int'), c('Buy Value', 'num'), c('Sell Qty', 'int'), c('Sell Value', 'num'), c('Net', 'num', { signed: true, bold: true })], totals: true, rows: 14
+  };
+
+  S['obligation'] = {
+    title: 'Net Obligation Bill — Summary', kind: 'report', desc: 'Settlement-wise bills with net due or pay.',
+    filters: [CLIENT(), DATE('Date From'), DATE('Date To'), f('Sett. No', 'text')],
+    columns: [c('Sett. No.', 'sett'), c('Bill No.', 'text', { o: ['B41023', 'B41077', 'B41112', 'B41150', 'B41201'] }), c('Bill Date', 'date'), c('Pay-in Date', 'date'), c('Net Due / Pay', 'num', { signed: true, bold: true }), c('Status', 'status', { o: ['Paid', 'Due', 'Received'] }), c('Bill', 'link', { o: 'PDF' })], totals: true, rows: 12
+  };
+
+  S['trade-conf'] = {
+    title: 'Trade Confirmation', kind: 'report', badges: true, desc: 'Scrip-wise purchases and sales for a trade date with scrip break and client net totals.',
+    filters: [DATE('Trade Date'), f('Exchange', 'select', ['N - NSE', 'B - BSE', 'M - MCX', 'C - Currency']), f('Client Code (optional)', 'select', CL()), f('Scrip Code (optional)', 'text'), f('Merge On Mkt. Rate', 'select', NY), f('Conf. On Avg Rate', 'select', NY), f('Avg. Order Wise', 'select', NY)],
+    columns: [c('Scrip Name', 'sname'), c('Sett. No', 'sett'), c('Buy Qty', 'int', { max: 200 }), c('Buy Mkt. Rate', 'rate'), c('Buy Net. Rate', 'rate'), c('Sale Qty', 'int', { max: 200 }), c('Sale Mkt. Rate', 'rate'), c('Sale Net. Rate', 'rate'), c('Delv. In', 'text', { o: ['DP', 'Pool', 'MTF'] }), c('Trd No / Time', 'time')], rows: 12,
+    groupHeader: [['', 2], ['Your Purchase', 3], ['Your Sale', 3], ['', 2]], summary: [['Total Buy', '4,82,110.50'], ['Total Sale', '3,10,442.10'], ['Net', '1,71,668.40 Dr']]
+  };
+
+  S['sett-summary'] = {
+    title: 'Settlement Summary', kind: 'report', desc: 'Settlements available for a trade date with client-wise and scrip-wise obligation views.',
+    filters: [DATE('Trade Date'), f('Exchange', 'select', ['NSE', 'BSE', 'MCX', 'ALL'])],
+    columns: [c('Sett. No', 'sett'), c('Exchange', 'exch'), c('Period From', 'date'), c('Period To', 'date'), c('Pay-in Date', 'date'), c('Obligation — Client Wise', 'link', { o: 'Open' }), c('Obligation — Scrip Wise', 'link', { o: 'Open' })], rows: 8
+  };
+
+  S['pcr'] = {
+    title: 'Payment Control Report', kind: 'report', desc: 'Pay-in and pay-out control for a report date.',
+    filters: [DATE('Report Date')],
+    columns: [c('Client Cd', 'client'), c('Client Name', 'cname'), c('Pay-in Due', 'num'), c('Pay-out Due', 'num'), c('Received', 'num'), c('Paid', 'num'), c('Net', 'num', { signed: true, bold: true }), c('Mode', 'text', { o: ['NEFT', 'RTGS', 'UPI', 'Cheque'] }), c('Status', 'status', { o: ['Cleared', 'Pending', 'Bounced'] })], totals: true, rows: 12
+  };
+
+  S['short-delivery'] = {
+    title: 'Short / Excess Delivery', kind: 'report', desc: 'Short and excess deliveries per settlement with auction and close-out amounts.',
+    filters: [f('Sett. No', 'text'), f('All Settlement Shortage', 'select', YN), CLIENT(), f('Report Type', 'select', ['Short', 'Excess', 'Both'])],
+    columns: [c('Sett. No', 'sett'), c('Client', 'client'), c('Scrip', 'scrip'), c('ISIN', 'isin'), c('Short Qty', 'int', { max: 50 }), c('Excess Qty', 'int', { min: 0, max: 10 }), c('Auction Rate', 'rate'), c('Close-out Amt', 'num', { max: 40000 }), c('Status', 'status', { o: ['Auctioned', 'Closed-out', 'Pending'] })], totals: true, rows: 10
+  };
+
+  S['stt'] = {
+    title: 'STT Liabilities', kind: 'report', desc: 'Securities Transaction Tax by date, exchange and client.',
+    filters: [DATE('Date From'), DATE('Date To'), f('Exchange', 'select', ['NSE', 'BSE', 'MCX']), f('Client Code (optional)', 'select', CL())],
+    columns: [c('Date', 'date'), c('Exchange', 'exch'), c('Client', 'client'), c('Scrip', 'scrip'), c('Delv. Buy', 'num'), c('Delv. Sell', 'num'), c('Intraday Sell', 'num', { max: 80000 }), c('STT Delivery', 'num', { max: 400 }), c('STT Intraday', 'num', { max: 60 }), c('Total STT', 'num', { max: 460, bold: true })], totals: true, rows: 14
+  };
+
+  S['annexure-10db'] = {
+    title: 'Annexure 10DB', kind: 'report', desc: 'STT certificate annexure for the financial year.',
+    filters: [f('Client Code (optional)', 'select', CL()), DATE('Fin. Year Date From'), DATE('Date To'), DATE('STT (Cap) Date From'), DATE('STT (Cap) Date To'), DATE('STT (F&O) Date From'), DATE('STT (F&O) Date To'), f('Exchange', 'select', ['NSE', 'BSE', 'MCX']),
+      f('Print ShortCode Always', 'select', ['Yes', 'No']), f('STT Tag', 'select', ['M', 'E', 'B']), f('Print STT From Fin. Lgr', 'select', ['Yes', 'No']), f('Print UCI Basis', 'select', ['Yes', 'No'])],
+    columns: [c('Client', 'client'), c('PAN', 'pan'), c('Scrip', 'scrip'), c('ISIN', 'isin'), c('Transaction Date', 'date'), c('Qty', 'int'), c('Value', 'num'), c('STT Paid', 'num', { max: 500 }), c('UCI', 'ref')], totals: true, rows: 12
+  };
+
+  S['demat-holding'] = {
+    title: 'Demat Holding / Ledger', kind: 'report', badges: true, desc: 'Demat ledger summary, client / scrip wise.',
+    filters: [DATE('As on Date'), CLIENT(), f('Sett. No (NSE)', 'text'), f('Sett. No (BSE)', 'text'), f('Sett. No (MCX)', 'text'), f('Holding From', 'select', ['Own A/c', 'Benf. A/c', 'Demat Mgn']), f('Holding Type', 'select', ['Both', 'Negative', 'Positive']), f('Pledge', 'select', ['Both', 'Pledgeable', 'Non-Pledgeable'])],
+    columns: [c('Scrip Code', 'scrip'), c('ISIN', 'isin'), c('Scrip Name', 'sname'), c('Sett. No.', 'sett'), c('Holding', 'int', { max: 800 }), c('Pledged', 'int', { min: 0, max: 200 }), c('Free', 'int', { max: 600 }), c('Rate', 'rate'), c('Value', 'num', { bold: true })], totals: true, rows: 12
+  };
+
+  S['holding-scrip'] = {
+    title: 'Holding (Scrip-wise)', kind: 'report', badges: true, desc: 'Demat ledger summary, scrip / client wise.',
+    filters: [DATE('As on Date'), f('Scrip Code', 'text'), f('Sett. No', 'text'), f('Holding From', 'select', ['Own A/c', 'Benf. A/c', 'Demat Mgn']), f('Pledge', 'select', ['Both', 'Pledgeable', 'Non-Pledgeable'])],
+    columns: [c('Scrip', 'scrip'), c('ISIN', 'isin'), c('Client', 'client'), c('Client Name', 'cname'), c('Holding Qty', 'int', { max: 800 }), c('Pledge Qty', 'int', { min: 0, max: 200 }), c('Free Qty', 'int', { max: 600 }), c('Rate', 'rate'), c('Value', 'num', { bold: true })], totals: true, rows: 12
+  };
+
+  S['demat-ledger'] = {
+    title: 'Demat Ledger (Detail)', kind: 'report', desc: 'Scrip movements with DP, client ID and reference numbers.',
+    filters: [DATE('Date From'), DATE('Date To'), CLIENT(), f('Scrip Code', 'text'), f('Sett. No', 'text'), f('Moved Accounts Scrip Only', 'select', YN)],
+    columns: [c('Date', 'date'), c('Sett. No', 'sett'), c('Type', 'text', { o: ['Pay-in', 'Pay-out', 'Pledge', 'Unpledge', 'Transfer'] }), c('DP ID', 'text', { o: ['12000000', '12011100'] }), c('Client ID', 'text', { o: ['00XXXX01', '00XXXX57'] }), c('Ref. No', 'ref'), c('Debit Qty', 'int', { min: 0, max: 300 }), c('Credit Qty', 'int', { min: 0, max: 300 }), c('Closing Stk', 'int', { max: 900, bold: true })], rows: 14
+  };
+
+  S['net-position'] = {
+    title: 'Net Position', kind: 'netpos', desc: 'Client-scrip and scrip-client views, in settlement or date range, plus the MIS report.', filters: [], auto: true, badges: true,
+    columns: [c('Contract', 'contract'), c('Buy Qty', 'int', { lot: 25, max: 8 }), c('Buy Avg', 'num', { max: 25000 }), c('Sell Qty', 'int', { lot: 25, max: 8 }), c('Sell Avg', 'num', { max: 25000 }), c('Net Qty', 'int', { lot: 25, max: 4 }), c('LTP', 'num', { max: 25000 }), c('MTM', 'num', { signed: true, max: 40000, bold: true }), c('Margin', 'num', { max: 150000 })], totals: true, rows: 7
+  };
+
+  S['sec-valuation'] = {
+    title: 'Security Valuation', kind: 'report', desc: 'Client-wise or scrip-wise stock value with variance.',
+    filters: [DATE('Report Date'), f('Report Sequence', 'select', ['Client Wise', 'Scrip Wise']), f('Closing Rate / Variance', 'select', ['T', 'T-1']), f('Variance Type', 'select', ['VAR ONLY', 'VAR + ELM', 'VAR', 'WITHOUT VAR'])],
+    columns: [c('Client Cd', 'client'), c('Client Name', 'cname'), c('Stock Val.', 'num', { max: 2500000 }), c('Stock Val. with Var.', 'num', { max: 2000000 }), c('Stock Limit', 'num', { max: 1500000, bold: true })], totals: true, rows: 12
+  };
+
+  S['stock-valuation'] = {
+    title: 'O/s Trxn. + Demat Stock Valuation', kind: 'report', badges: true, desc: 'Outstanding transactions plus demat stock, valued at closing price.',
+    filters: [CLIENT(), f('Group Stock Valuation Reqd', 'select', ['Overall Group', 'Selected Client Only']), DATE('Trx. Up To Date'), DATE('Demat Stk Up To Date'), DATE('Closing Price Date')],
+    columns: [c('Scrip', 'scrip'), c('ISIN', 'isin'), c('O/S Trxn Qty', 'int', { min: 0, max: 100 }), c('Demat Qty', 'int', { max: 600 }), c('Total Qty', 'int', { max: 700 }), c('Closing Rate', 'rate'), c('Value', 'num'), c('Var %', 'pct', { max: 25 }), c('Value after Var', 'num', { bold: true })], totals: true, rows: 12
+  };
+
+  S['stock-debit'] = {
+    title: 'Stock Against Debit', kind: 'report', desc: 'Holdings available for sale against a debit balance.', filters: [], auto: true,
+    info: [['Report Date', '30-Sep-2026'], ['Trade Date From', '01-Sep-2026'], ['Trade Date To', '30-Sep-2026'], ['Financial Date From', '01-Apr-2026'], ['Closing Rate Date', '29-Sep-2026']],
+    columns: [c('Scrip Cd', 'scrip'), c('Scrip Name', 'sname'), c('Holding As On', 'int', { max: 500 }), c('Future Net', 'int', { min: 0, max: 50 }), c('Trade Allow For Sale', 'int', { max: 300 }), c('Price', 'rate'), c('Allow Sale Holding', 'int', { max: 300 }), c('Tot. Holding', 'int', { max: 500 }), c('DPM', 'int', { min: 0, max: 100 }), c('Value', 'num', { bold: true })], totals: true, rows: 10
+  };
+
+  S['trx-ledger'] = {
+    title: 'Client – Scrip Ledger', kind: 'report', desc: 'Transaction ledger per client and scrip with cumulative balance.',
+    filters: [f('Client Code (optional)', 'select', CL()), f('Scrip Code (optional)', 'text'), f('Sett. No', 'text'), DATE('Date From'), DATE('Date To'), f('Trxn. Selection', 'select', ['All Trxn.', 'O/S Trxn.']), f('Brok. Type', 'select', ['Both', 'Jobb', 'Delv']), f('Trxn. Type', 'select', ['Both', 'Sale', 'Buy']), f('Avg Rate', 'select', NY), f('Exchange', 'select', ['ALL', 'NSE', 'BSE', 'MCX'])],
+    columns: [c('Trxn. Date', 'date'), c('Sett No', 'sett'), c('Scrip Code / Name', 'sname'), c('ISIN', 'isin'), c('Delv', 'text', { o: ['D', 'J'] }), c('Qty (+)', 'int', { min: 0, max: 200 }), c('Qty (−)', 'int', { min: 0, max: 200 }), c('Mkt. Rate', 'rate'), c('Net Rate', 'rate'), c('Debit', 'num'), c('Credit', 'num'), c('Cumlv. Balance', 'num', { signed: true, bold: true })], totals: true, rows: 16
+  };
+
+  S['comb-margin'] = {
+    title: 'Margin Combined (F&O)', kind: 'report', desc: 'SPAN, exposure, MTM, deposit and peak margin per client.',
+    filters: [DATE('Trade Date'), f('Exchange', 'select', ['ALL', 'NCDEX', 'NSEFO', 'MCX', 'NSECM', 'NMCE', 'ICEX', 'NSECD', 'NSECOM']), f('Report Type', 'select', ['Summary'])],
+    columns: [c('Exchange', 'exch', { o: ['NSEFO', 'MCX', 'NSECD'] }), c('Actual Cd', 'client'), c('Client Name', 'cname'), c('SPAN Mgn', 'num'), c('Net Buy Prm.', 'num', { max: 40000 }), c('Exp. Mgn.', 'num', { max: 90000 }), c('MTM', 'num', { signed: true, max: 30000 }), c('Bal. Avl. T-Day', 'num'), c('Delv. Mgn.', 'num', { max: 50000 }), c('Total Mgn.', 'num'),
+      c('Depo. Mgn.', 'num'), c('Short Mgn.', 'num', { max: 20000 }), c('Actual Short / Excess', 'num', { signed: true, max: 40000, bold: true }), c('Peak Mgn.', 'num'), c('Peak Depo.', 'num'), c('Peak Short', 'num', { max: 20000 })], totals: true, rows: 12
+  };
+
+  S['holding-fin'] = {
+    title: 'Holding Statement with Financial', kind: 'report', badges: true, desc: 'Holdings, pledge, MTF and closing rate alongside the financial balance.',
+    filters: [DATE('Holding As On Date'), DATE('Financial As On Date'), DATE('Margin Date'), DATE('Closing Price Date'), CLIENT(), f('Report Type', 'select', ['Selected Clients Only', 'With Group Accounts']), f('A/c Status', 'select', ['Active', 'Inactive', 'ALL']), f('Scrip Code', 'text'),
+      f('Holding Type', 'select', ['Both', 'Pledge Only', 'Non Pledge']), f('Variance Reqd', 'select', YN), f('Variance From', 'select', ['Exchange File', 'Normal']), f('Include MTF Holding', 'select', NY)],
+    columns: [c('Scrip Cd', 'scrip'), c('Scrip Name', 'sname'), c('ISIN', 'isin'), c('Cash Qty', 'int', { max: 400 }), c('Pledgable', 'int', { max: 300 }), c('Holding', 'int', { max: 500 }), c('Pledge Stock', 'int', { min: 0, max: 150 }), c('MTF Coll.', 'int', { min: 0, max: 50 }), c('DP Stock', 'int', { max: 400 }), c('Tot. Stock', 'int', { max: 600 }),
+      c('Clos. Rate', 'rate'), c('Variance %', 'pct', { max: 20 }), c('Total Val', 'num', { bold: true }), c('Buy Price', 'rate'), c('Total P&L', 'num', { signed: true, max: 60000 })], totals: true, rows: 12,
+    info: [['Financial Balance', '1,25,430.50 Cr'], ['Margin Balance', '42,000.00'], ['No. of Entries', '12']]
+  };
+
+  S['brokerage'] = {
+    title: 'Brokerage Query', kind: 'report', desc: 'Turnover and brokerage, delivery and jobbing, per client.',
+    filters: [DATE('Date From'), DATE('Date To'), f('Exchange', 'select', ['ALL', 'NSE', 'BSE', 'MCX', 'SLB']), CLIENT(), f('Group Client', 'text'), f('Dealer', 'text'), f('Order By', 'select', ['Name Wise', 'Client Code Wise', 'Group/Client Wise'])],
+    columns: [c('Group', 'group'), c('Br / Sub.Br / Client', 'client'), c('Client Name', 'cname'), c('Turnover (Delv.)', 'num', { max: 2000000 }), c('Turnover (Jobb.)', 'num', { max: 3000000 }), c('Total Turnover', 'num', { max: 5000000 }), c('Brok. (Delv.)', 'num', { max: 6000 }), c('Brok. (Jobb.)', 'num', { max: 3000 }), c('Total Brok.', 'num', { max: 9000, bold: true })], totals: true, rows: 12,
+    groupHeader: [['', 3], ['Turnover', 3], ['Brokerage', 3]]
+  };
+
+  S['contract-note'] = {
+    title: 'Contract Notes', kind: 'report', desc: 'View, download or e-mail contract notes; select several to download together.',
+    filters: [DATE('Date From'), DATE('Date To'), CLIENT(), f('Dealing (Branch) Address Reqd', 'select', YN), f('Seg. Selection', 'select', ['Capital (NSE)', 'SLB (NSE)', 'Capital (BSE)', 'Capital (MCX)', 'F&O (NSE)', 'F&O (BSE)', 'F&O (MCX)']), f('Scrip Break Totals Required', 'select', YN)],
+    selectable: true, columns: [c('Trade Date', 'date'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Contract Note No', 'text', { o: ['CN/2026/00412', 'CN/2026/00418', 'CN/2026/00425', 'CN/2026/00431'] }), c('Cont. Type', 'text', { o: ['Capital', 'F&O'] }), c('Email ID', 'email'), c('View', 'link', { o: 'View' }), c('PDF', 'link', { o: 'PDF' }), c('Mail', 'link', { o: 'Mail' })], rows: 12,
+    resultActions: ['Download Selected Contract Notes']
+  };
+
+  S['scrip-costing'] = {
+    title: 'Scrip Wise Costing Report', kind: 'report', badges: true, desc: 'Every charge behind the net amount, scrip by scrip.',
+    filters: [CLIENT(), DATE('Date From'), DATE('Date To'), f('Report Type', 'select', ['Summary', 'Detail']), f('Scrip (optional)', 'text')],
+    columns: [c('Scrip', 'scrip'), c('Scrip Name', 'sname'), c('Trx. Date', 'date'), c('Exch.', 'exch'), c('Buy Qty', 'int', { max: 200 }), c('Sell Qty', 'int', { max: 200 }), c('Buy Value', 'num'), c('Sell Value', 'num'), c('Net Qty', 'int', { max: 100 }), c('Net Value', 'num', { signed: true }), c('Brok.', 'num', { max: 400 }), c('GST', 'num', { max: 80 }), c('Trx. Tax', 'num', { max: 20 }),
+      c('Exch. Clg', 'num', { max: 15 }), c('Stamp', 'num', { max: 10 }), c('STT', 'num', { max: 300 }), c('SEBI Chrg', 'num', { max: 2 }), c('Oth. Chrg 1', 'num', { max: 5 }), c('Oth. Chrg 2', 'num', { max: 5 }), c('IPF', 'num', { max: 2 }), c('Avg. Rate', 'rate'), c('Net Amt', 'num', { bold: true })], totals: true, rows: 14
+  };
+
+  S['file-mgmt'] = { title: 'File Management', kind: 'files', desc: 'Every statement the back office generates, ready to download, plus a place to upload documents to the broker.' };
+  S['payments'] = { title: 'Payments', kind: 'payments', desc: 'Raise a fund pay-out request. Protected by the transaction-entry password.' };
+  S['change-req'] = { title: 'Modification Request', kind: 'change-req', desc: 'Change mobile, e-mail, address, bank, UID or UPI details with OTP verification.' };
+  S['cdsl-pledge'] = { title: 'CDSL Normal Pledge (EP)', kind: 'cdsl-pledge', desc: 'Create a normal pledge request for selected holdings.' };
+  S['cdsl-margin-pledge'] = { title: 'Margin Pledge Request', kind: 'cdsl-margin', desc: 'Pledge holdings as margin with the depository. OTP is verified on the CDSL page.', mode: 'pledge' };
+  S['cdsl-margin-unpledge'] = { title: 'Margin UnPledge Request', kind: 'cdsl-margin', desc: 'Release holdings pledged as margin.', mode: 'unpledge' };
+  S['cdsl-destat'] = { title: 'CDSL Destat Setup Request', kind: 'cdsl-destat', desc: 'Set up a dematerialisation request with ISIN rows.' };
+  S['transfer-status'] = { title: 'Transfer Status', kind: 'transfer-status', desc: 'Track every pledge, unpledge, DPM-to-margin and buyback request.' };
+  S['buyback'] = { title: 'Buyback Pay-in Request (Group)', kind: 'buyback', desc: 'Tender shares to a buyback and verify with OTP.' };
+  S['ofs-block'] = { title: 'OFS Fund Block Request', kind: 'ofs-block', desc: 'Block funds for an Offer for Sale.' };
+  S['ofs-request'] = { title: 'OFS Request Interface', kind: 'ofs-request', desc: 'Place bids in an active Offer for Sale.' };
+  S['ofs-orders'] = { title: 'OFS Order Book', kind: 'ofs-orders', desc: 'Modify or cancel OFS orders.' };
+  S['admin'] = { title: 'Admin & Settings', kind: 'admin', desc: 'Passwords, profile, notifications and login history.' };
+
+
+  /* Upload module — main_page_upload?report_type=N. Each report_type is one screen; the
+     URL ?report_type=N (or #upload-N) opens it directly. */
+  const DOCS = ['PDF', 'JPG', 'PNG'], DATA = ['CSV', 'TXT', 'XLS', 'XLSX'];
+  const U = (n, o) => { S['upload-' + n] = Object.assign({ kind: 'upload', reportType: n }, o); };
+  const EXCH = f('Exchange', 'select', ['NSE', 'BSE', 'MCX', 'NCDEX']);
+  const SEG = f('Segment', 'select', ['Capital', 'F&O', 'Currency', 'Commodity', 'SLB']);
+  const DOCLOG = [c('Uploaded On', 'date'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Document', 'text', { o: ['PAN', 'Aadhaar', 'Bank Proof', 'Income Proof', 'Address Proof', 'Photo', 'Signature'] }), c('File', 'text', { o: ['scan_001.pdf', 'proof.jpg', 'itr_2025.pdf', 'cheque.png'] }), c('Size', 'text', { o: ['84 KB', '212 KB', '1.1 MB', '640 KB'] }), c('Status', 'status', { o: ['Verified', 'Pending', 'Rejected'] }), c('Remarks', 'text', { o: ['—', 'Blurred, re-upload', 'OK'] }), c('View', 'link', { o: 'View' })];
+  const DATALOG = [c('Uploaded On', 'date'), c('Time', 'time'), c('File Name', 'text', { o: ['upload_0930.csv', 'data_29SEP.txt', 'file_final.xlsx'] }), c('Records', 'int', { max: 4000 }), c('Accepted', 'int', { max: 3900 }), c('Rejected', 'int', { min: 0, max: 40 }), c('Uploaded By', 'text', { o: ['U1001', 'U1002', 'ADMIN'] }), c('Status', 'status', { o: ['Processed', 'Pending', 'Rejected'] }), c('Error Log', 'link', { o: 'Download' })];
+
+  U(0, { title: 'Document Upload', desc: 'Upload any client document to the back office — logged against the client code and sent for verification.', accept: DOCS, maxMb: 5, multi: true,
+    filters: [CLIENT(), f('Document Type', 'select', ['PAN Card', 'Aadhaar', 'Address Proof', 'Bank Proof', 'Income Proof', 'Photograph', 'Signature', 'Nomination Form', 'DDPI', 'Other']), f('Document Date', 'date'), f('Remarks', 'text', null, { wide: true })],
+    rules: ['Each file up to 5 MB; PDF, JPG or PNG.', 'Multi-page proofs should be one PDF.', 'Password-protected PDFs are rejected.'], log: DOCLOG });
+  U(1, { title: 'KYC Modification Proof', desc: 'Supporting proof for a change in mobile, e-mail, address, bank or nominee details.', accept: DOCS, maxMb: 5, multi: true,
+    filters: [CLIENT(), f('Modification Type', 'select', ['Mobile No.', 'Email ID', 'Address', 'Bank Details', 'Nominee', 'Name Change', 'Signature']), f('Change Request No.', 'text', null, { ph: 'CR/2026/…' }), f('Proof Type', 'select', ['Self-attested copy', 'Original scan', 'e-Sign PDF'])],
+    rules: ['Proof must be self-attested.', 'Request number links the proof to an open change request.'], log: DOCLOG });
+  U(2, { title: 'Income Proof (Annual Update)', desc: 'Annual income / net-worth proof required for derivatives segment activation.', accept: DOCS, maxMb: 5,
+    filters: [CLIENT(), f('Financial Year', 'select', ['2025-26', '2024-25', '2023-24']), f('Proof Type', 'select', ['ITR Acknowledgement', 'Form 16', 'Salary Slip (3 months)', 'Bank Statement (6 months)', 'Net-worth Certificate', 'Demat Holding Statement']), f('Annual Income Range', 'select', ['Below 1 Lac', '1–5 Lac', '5–10 Lac', '10–25 Lac', '25 Lac – 1 Cr', 'Above 1 Cr']), f('Net Worth (₹)', 'number')],
+    rules: ['Bank statement must cover the last 6 months.', 'Net-worth certificate must be CA-signed and less than 1 year old.'], log: DOCLOG });
+  U(3, { title: 'Bank Proof / Mandate', desc: 'Cancelled cheque or bank statement to add or change a pay-out bank account.', accept: DOCS, maxMb: 5,
+    filters: [CLIENT(), f('Action', 'radio', ['Add Bank', 'Change Primary', 'Delete Bank']), f('IFSC Code', 'text', null, { ph: 'HDFC0000123' }), f('Account No.', 'text'), f('Account Type', 'select', ['Savings', 'Current', 'NRE', 'NRO']), f('Proof Type', 'select', ['Cancelled Cheque', 'Bank Statement', 'Passbook Front Page'])],
+    rules: ['Account holder name must match the client name.', 'Cheque must show the printed name and MICR.'], log: DOCLOG });
+  U(4, { title: 'Nomination Form', desc: 'Signed nomination or opt-out declaration for the trading and demat account.', accept: DOCS, maxMb: 5,
+    filters: [CLIENT(), f('Nomination Option', 'radio', ['Nominate', 'Opt-out']), f('No. of Nominees', 'select', ['1', '2', '3', '…up to 10']), f('Applies To', 'select', ['Trading & Demat', 'Trading only', 'Demat only'])],
+    rules: ['Opt-out needs a video or witness declaration.', 'Share percentages must total 100%.'], log: DOCLOG });
+  U(5, { title: 'DDPI / POA', desc: 'Signed DDPI or Power of Attorney copy for demat debits.', accept: DOCS, maxMb: 5,
+    filters: [CLIENT(), f('Document', 'select', ['DDPI', 'POA', 'DDPI Revocation']), f('DP ID / BO ID', 'text'), f('Execution Date', 'date'), f('Stamp Paper No.', 'text')], rules: ['Stamp duty as applicable in the client’s state.'], log: DOCLOG });
+
+  U(6, { title: 'Trade File Upload', desc: 'Import the exchange trade file for a trade date; trades are validated against client master and contract specs.', accept: DATA, maxMb: 50, data: true,
+    filters: [EXCH, SEG, DATE('Trade Date'), f('File Type', 'select', ['Trade File (Online)', 'Trade File (EOD)', 'Order Log', 'Custodial Trades']), f('Overwrite Existing', 'select', NY)],
+    layout: ['Trade No', 'Trade Time', 'Order No', 'Client Code', 'Symbol / Contract', 'Series', 'Buy/Sell', 'Qty', 'Rate', 'Terminal ID', 'CP Code'],
+    preview: [c('Trade No', 'ref'), c('Client Code', 'client'), c('Symbol', 'scrip'), c('B/S', 'text', { o: ['B', 'S'] }), c('Qty', 'int', { max: 500 }), c('Rate', 'rate'), c('Time', 'time'), c('Validation', 'status', { o: ['OK', 'OK', 'OK', 'Client not found', 'Duplicate'] })], log: DATALOG });
+  U(7, { title: 'Bank Statement Upload (Receipts)', desc: 'Upload the bank statement to auto-match client receipts and post them as receipt vouchers.', accept: DATA, maxMb: 20, data: true,
+    filters: [f('Bank Account', 'select', ['HDFC Client A/c ••4410', 'ICICI Client A/c ••0912', 'Axis Settlement A/c ••7731']), f('Bank Format', 'select', ['HDFC MT940', 'ICICI CSV', 'Axis XLS', 'Generic CSV']), DATE('Statement From'), DATE('Statement To'), f('Auto-post Matched', 'select', YN)],
+    layout: ['Txn Date', 'Value Date', 'Narration', 'Cheque / UTR', 'Debit', 'Credit', 'Balance'],
+    preview: [c('Txn Date', 'date'), c('Narration', 'text', { o: ['NEFT-C1001-AARAV', 'UPI/C1004', 'IMPS 401223', 'RTGS-C1009'] }), c('UTR', 'ref'), c('Credit', 'num', { max: 90000 }), c('Matched Client', 'client'), c('Validation', 'status', { o: ['Matched', 'Matched', 'Unmatched', 'Third-party'] })], totals: true, log: DATALOG });
+  U(8, { title: 'Payment / Receipt Vouchers', desc: 'Bulk-post payment or receipt vouchers from a file.', accept: DATA, maxMb: 20, data: true,
+    filters: [f('Voucher Type', 'radio', ['Receipt', 'Payment']), f('Bank Book', 'select', ['HDFC Client A/c', 'ICICI Client A/c', 'Axis Settlement A/c']), DATE('Voucher Date'), SEG, f('Mode', 'select', ['ALL', 'NEFT', 'RTGS', 'Cheque', 'UPI'])],
+    layout: ['Voucher Date', 'Client Code', 'Amount', 'Mode', 'Cheque / UTR', 'Bank', 'Narration'],
+    preview: [c('Date', 'date'), c('Client Code', 'client'), c('Client Name', 'cname'), c('Amount', 'num', { max: 80000 }), c('Mode', 'text', { o: ['NEFT', 'RTGS', 'UPI', 'Cheque'] }), c('UTR / Chq', 'ref'), c('Validation', 'status', { o: ['OK', 'OK', 'Insufficient balance', 'OK'] })], totals: true, log: DATALOG });
+  U(9, { title: 'Journal Vouchers', desc: 'Bulk journal entries (DP charges, interest, transfers between segments).', accept: DATA, maxMb: 20, data: true,
+    filters: [DATE('JV Date'), SEG, f('JV Type', 'select', ['General', 'DP Charges', 'Delayed Payment Interest', 'Inter-segment Transfer', 'MTM'])],
+    layout: ['JV Date', 'Account Code', 'Dr/Cr', 'Amount', 'Cost Centre', 'Narration'],
+    preview: [c('Date', 'date'), c('Account', 'client'), c('Dr/Cr', 'text', { o: ['Dr', 'Cr'] }), c('Amount', 'num', { max: 20000 }), c('Narration', 'text', { o: ['DP charges Sep', 'Interest @18%', 'Transfer to F&O'] }), c('Validation', 'status', { o: ['OK', 'OK', 'Dr≠Cr'] })], totals: true, log: DATALOG });
+  U(10, { title: 'Client Master Upload', desc: 'Create or update client accounts in bulk from the KYC / UCC file.', accept: DATA, maxMb: 20, data: true,
+    filters: [f('Upload Mode', 'radio', ['New Clients', 'Modify Existing']), f('Source', 'select', ['UCC File (NSE)', 'UCC File (BSE)', 'KRA Download', 'Back-office Format']), f('Branch', 'select', ['ALL', 'HO', 'AHM', 'JPR', 'BLR', 'CHN', 'DEL']), f('Send Welcome Mail', 'select', YN)],
+    layout: ['Client Code', 'Name', 'PAN', 'DOB', 'Mobile', 'Email', 'Address', 'Bank A/c', 'IFSC', 'DP ID', 'Branch', 'RM'],
+    preview: [c('Client Code', 'client'), c('Client Name', 'cname'), c('PAN', 'pan'), c('State', 'state'), c('Branch', 'branch'), c('RM', 'rm'), c('Validation', 'status', { o: ['OK', 'OK', 'PAN mismatch', 'Duplicate mobile'] })], log: DATALOG });
+  U(11, { title: 'Margin / Collateral File', desc: 'Import the clearing corporation margin or collateral file.', accept: DATA, maxMb: 50, data: true,
+    filters: [EXCH, SEG, DATE('Margin Date'), f('File Type', 'select', ['Margin File (MG13)', 'Peak Margin', 'Collateral Valuation', 'Haircut Master'])],
+    layout: ['Client Code', 'Initial Margin', 'Exposure', 'Peak Margin', 'Collateral', 'Shortfall'],
+    preview: [c('Client Code', 'client'), c('Initial', 'num', { max: 90000 }), c('Exposure', 'num', { max: 40000 }), c('Peak', 'num', { max: 120000 }), c('Collateral', 'num', { max: 150000 }), c('Shortfall', 'num', { signed: true, max: 20000 }), c('Validation', 'status', { o: ['OK', 'OK', 'Client not found'] })], totals: true, log: DATALOG });
+  U(12, { title: 'Pledge Response File', desc: 'Upload the CDSL / NSDL pledge, unpledge or re-pledge response file.', accept: DATA, maxMb: 20, data: true,
+    filters: [f('Depository', 'select', ['CDSL', 'NSDL']), f('Response Type', 'select', ['Margin Pledge', 'Margin UnPledge', 'Re-pledge', 'Invocation']), DATE('Response Date')],
+    layout: ['PSN', 'BO ID', 'ISIN', 'Qty', 'Status', 'Reason'],
+    preview: [c('PSN', 'ref'), c('Client Code', 'client'), c('ISIN', 'isin'), c('Scrip', 'scrip'), c('Qty', 'int', { max: 300 }), c('Status', 'status', { o: ['Accepted', 'Accepted', 'Rejected'] })], log: DATALOG });
+  U(13, { title: 'DP Holding File', desc: 'Daily holding file from the depository for valuation and stock-against-debit.', accept: DATA, maxMb: 100, data: true,
+    filters: [f('Depository', 'select', ['CDSL', 'NSDL']), f('DP ID', 'text', null, { ph: '12012345' }), DATE('Holding Date'), f('Holding Type', 'select', ['Beneficiary', 'Pool', 'Client Unpaid Securities', 'Margin Pledged'])],
+    layout: ['BO ID', 'ISIN', 'Free Qty', 'Pledged Qty', 'Locked-in', 'Closing Price'],
+    preview: [c('Client Code', 'client'), c('ISIN', 'isin'), c('Scrip', 'scrip'), c('Free Qty', 'int', { max: 400 }), c('Pledged', 'int', { min: 0, max: 100 }), c('Rate', 'rate'), c('Validation', 'status', { o: ['OK', 'OK', 'ISIN not in master'] })], log: DATALOG });
+  U(14, { title: 'Brokerage Slab Upload', desc: 'Assign or change brokerage slabs for many clients at once.', accept: DATA, maxMb: 10, data: true,
+    filters: [EXCH, SEG, DATE('Effective From'), f('Apply To', 'select', ['Clients in file', 'Branch', 'Group'])],
+    layout: ['Client Code', 'Delivery %', 'Intraday %', 'Futures %', 'Options / Lot', 'Min. per Scrip'],
+    preview: [c('Client Code', 'client'), c('Client Name', 'cname'), c('Delivery %', 'pct', { max: 0.5 }), c('Intraday %', 'pct', { max: 0.05 }), c('Options / Lot', 'num', { max: 40 }), c('Validation', 'status', { o: ['OK', 'OK', 'Above SEBI cap'] })], log: DATALOG });
+
+  S['upload-log'] = { title: 'Upload History', kind: 'report', desc: 'Every upload across all types, with record counts and downloadable error logs.',
+    filters: [DATE('Date From'), DATE('Date To'), f('Upload Type', 'select', ['ALL'].concat(Object.keys(S).filter(k => /^upload-\d+$/.test(k)).map(k => S[k].title))), f('Status', 'select', ['ALL', 'Processed', 'Pending', 'Rejected']), f('Uploaded By', 'text')],
+    columns: [c('Uploaded On', 'date'), c('Time', 'time'), c('Upload Type', 'text', { o: ['Trade File Upload', 'Document Upload', 'Bank Statement Upload', 'Client Master Upload', 'Journal Vouchers'] }), c('File Name', 'text', { o: ['upload_0930.csv', 'scan_001.pdf', 'stmt_sep.xlsx'] }), c('Records', 'int', { max: 4000 }), c('Rejected', 'int', { min: 0, max: 40 }), c('Uploaded By', 'text', { o: ['U1001', 'U1002', 'ADMIN'] }), c('Status', 'status', { o: ['Processed', 'Pending', 'Rejected'] }), c('Error Log', 'link', { o: 'Download' })], rows: 14 };
+
+  window.NAV = NAV; window.SCREENS = S;
+})();
+
+</script>
+<script>
+/* Shared engine for the back-office redesign prototypes.
+   Builds the shell (header, navigation, footer), routes by hash, and renders every screen
+   from SCREENS. Each design file supplies its own CSS and sets data-layout on <body>:
+   "sidebar" | "topnav" | "rail". */
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const h = (tag, attrs, ...kids) => {
+    const el = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === 'class') el.className = attrs[k];
+      else if (k === 'html') el.innerHTML = attrs[k];
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] !== null && attrs[k] !== undefined) el.setAttribute(k, attrs[k]);
+    }
+    kids.flat().forEach(k => { if (k === null || k === undefined || k === false) return; el.appendChild(typeof k === 'string' ? document.createTextNode(k) : k); });
+    return el;
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+
+  const ICONS = {
+    home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+    ledger: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    bill: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    report: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    folder: '<path d="M3 6h6l2 2h10v11H3z"/>',
+    send: '<path d="M21 3 3 10l8 3 3 8z"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+    download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/>',
+    print: '<path d="M6 9V3h12v6M6 18H4V9h16v9h-2"/><rect x="6" y="14" width="12" height="7"/>',
+    excel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+    pdf: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 17v-5h2a1.5 1.5 0 0 1 0 3H9"/>',
+    chev: '<path d="m9 6 6 6-6 6"/>',
+    check: '<path d="m5 12 5 5 9-10"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    star: '<path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 3 1.1-6.2L3 9.7l6.2-.9z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+    upload: '<path d="M12 21V9m0 0 4 4m-4-4-4 4M4 3h16"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    logout: '<path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'
+  };
+  const ILLUS = {
+    empty: '<svg viewBox="0 0 160 120" class="illus"><defs><linearGradient id="il1" x1="0" x2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".25"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".05"/></linearGradient></defs><rect x="28" y="18" width="84" height="96" rx="8" fill="url(#il1)" stroke="var(--accent)" stroke-opacity=".5"/><rect x="40" y="34" width="44" height="6" rx="3" fill="var(--accent)" opacity=".55"/><rect x="40" y="48" width="60" height="5" rx="2.5" fill="var(--border)"/><rect x="40" y="60" width="52" height="5" rx="2.5" fill="var(--border)"/><rect x="40" y="72" width="58" height="5" rx="2.5" fill="var(--border)"/><rect x="40" y="84" width="36" height="5" rx="2.5" fill="var(--border)"/><circle cx="118" cy="88" r="17" fill="var(--surface)" stroke="var(--accent)" stroke-width="3"/><path d="m130 100 12 12" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><path d="M110 88h16M118 80v16" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>',
+    lock: '<svg viewBox="0 0 160 120" class="illus"><rect x="48" y="52" width="64" height="52" rx="10" fill="var(--accent-soft)" stroke="var(--accent)"/><path d="M60 52V40a20 20 0 0 1 40 0v12" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="80" cy="76" r="6" fill="var(--accent)"/><path d="M80 80v10" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="128" cy="36" r="4" fill="var(--accent)" opacity=".4"/><circle cx="34" cy="30" r="3" fill="var(--accent)" opacity=".3"/><circle cx="30" cy="96" r="5" fill="var(--accent)" opacity=".2"/></svg>',
+    upload: '<svg viewBox="0 0 160 120" class="illus"><path d="M44 92a22 22 0 0 1 4-43 30 30 0 0 1 58-6 20 20 0 0 1 10 49z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><path d="M80 100V62m0 0-14 14m14-14 14 14" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  function illus(name) { const d = h('div', { class: 'illus-wrap', html: ILLUS[name] || ILLUS.empty }); return d; }
+  // Coloured monogram badge for a scrip / client code
+  const BADGE_HUES = [212, 160, 28, 268, 340, 190, 95, 20, 240, 300];
+  function badge(text, small) {
+    const t = String(text || '').replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase() || '··';
+    let hsh = 0; for (const ch of String(text)) hsh = (hsh * 31 + ch.charCodeAt(0)) & 0xffff;
+    const hue = BADGE_HUES[hsh % BADGE_HUES.length];
+    return h('span', { class: 'mono-badge' + (small ? ' sm' : ''), style: '--hue:' + hue }, t);
+  }
+  function countUp(el, ms) {
+    const final = el.textContent; const m = final.match(/[\d,]+(\.\d+)?/); if (!m) return;
+    const num = parseFloat(m[0].replace(/,/g, '')); const dp = (m[1] || '').length ? m[1].length - 1 : 0;
+    const t0 = performance.now(); ms = ms || 900;
+    const tick = now => { const p = Math.min(1, (now - t0) / ms); const e = 1 - Math.pow(1 - p, 3); el.textContent = final.replace(m[0], BO.inr(num * e, dp)); if (p < 1) requestAnimationFrame(tick); else el.textContent = final; };
+    requestAnimationFrame(tick);
+  }
+  function ripple(e) {
+    const b = e.target.closest('.btn, .nav-sec-btn, .tab, .chip'); if (!b) return;
+    const r = b.getBoundingClientRect(); const s = h('i', { class: 'ripple', style: 'left:' + (e.clientX - r.left) + 'px;top:' + (e.clientY - r.top) + 'px' });
+    b.appendChild(s); setTimeout(() => s.remove(), 650);
+  }
+  const icon = (n, cls) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'ic' + (cls ? ' ' + cls : '')); s.innerHTML = ICONS[n] || ''; return s; };
+
+  const state = { seg: 'Capital', exch: 'CAPITAL & FO', screen: 'dashboard', client: BO.CLIENTS[0], favs: ['fin-ledger', 'demat-holding', 'contract-note', 'payments'] };
+
+  /* ------------------------------------------------------------------ shell */
+  function buildShell() {
+    const layout = document.body.dataset.layout || 'sidebar';
+    const F = BO.FIRM;
+    const brand = h('a', { class: 'brand', href: '#dashboard' }, h('span', { class: 'brand-mark' }, F.short.slice(0, 1)), h('span', { class: 'brand-text' }, h('b', null, F.name), h('small', null, 'Netbackoffice Corporate')));
+    const segToggle = h('div', { class: 'seg-toggle', role: 'tablist' }, ...['Capital', 'F&O'].map(s => h('button', { class: 'seg' + (state.seg === s ? ' on' : ''), onclick: e => { state.seg = s; $$('.seg').forEach(b => b.classList.toggle('on', b === e.currentTarget)); toast('Segment switched to ' + s); } }, s)));
+    const exSel = h('select', { class: 'exch-sel', title: 'Exchange / financial year', onchange: e => { state.exch = e.target.value; toast('Now viewing ' + e.target.value); } }, ...['CAPITAL & FO', 'COMMODITY', 'CURRENCY', 'CDSL', 'CAP 25-26', 'COMM 25-26', 'FXF 25-26', 'CDSL 25-26'].map(o => h('option', null, o)));
+    const search = h('button', { class: 'gsearch', onclick: openPalette }, icon('search'), h('span', null, 'Search screens, clients…'), h('kbd', null, 'Ctrl K'));
+    const meta = h('div', { class: 'meta' }, h('span', null, 'Fin. Year ', h('b', null, F.finYear)), h('span', null, 'Licence ', h('b', null, F.licence)), h('span', null, 'Member ', h('b', null, F.memberCode)));
+    const userChip = h('div', { class: 'user' }, h('span', { class: 'avatar' }, 'DU'), h('span', { class: 'user-text' }, h('b', null, F.user.name), h('small', null, F.user.id + ' · ' + F.user.type + ' · ' + F.user.branch)));
+    const bell = h('button', { class: 'ibtn', title: 'Notifications', onclick: () => toast('3 notifications: pay-in due today, contract note for 29-Sep, KYC annual update due') }, icon('bell'), h('i', { class: 'dot' }));
+    const logout = h('button', { class: 'btn btn-danger btn-sm', onclick: () => toast('Logged out (prototype)') }, icon('logout'), 'Logout');
+    const menuBtn = h('button', { class: 'ibtn hamburger', onclick: () => document.body.classList.toggle('nav-open') }, icon('menu'));
+
+    const topbar = h('header', { class: 'topbar' }, menuBtn, brand, h('div', { class: 'topbar-mid' }, search, segToggle, exSel), h('div', { class: 'topbar-right' }, meta, bell, userChip, logout));
+
+    const nav = h('nav', { class: 'nav' }, ...NAV.map(sec => {
+      const items = sec.items.map(([id, label]) => h('a', { class: 'nav-item', href: '#' + id, 'data-id': id }, label));
+      const single = sec.items.length === 1;
+      const btn = h(single ? 'a' : 'button', { class: 'nav-sec-btn', href: single ? '#' + sec.items[0][0] : null, onclick: single ? null : e => { const s = e.currentTarget.parentElement; if (layout === 'sidebar') s.classList.toggle('open'); else { const was = s.classList.contains('open'); $$('.nav-sec').forEach(x => x.classList.remove('open')); if (!was) s.classList.add('open'); } } },
+        icon(sec.icon), h('span', null, sec.label), single ? null : icon('chev', 'chev'), single ? null : h('em', { class: 'count' }, String(sec.items.length)));
+      return h('div', { class: 'nav-sec', 'data-key': sec.key }, btn, single ? null : h('div', { class: 'nav-items' }, h('div', { class: 'nav-items-in' }, ...items)));
+    }));
+    const favs = h('div', { class: 'nav-favs' }, h('div', { class: 'nav-favs-title' }, icon('star'), 'Favourites'), ...state.favs.map(id => h('a', { class: 'nav-item', href: '#' + id, 'data-id': id }, SCREENS[id].title)));
+    const side = h('aside', { class: 'sidebar' }, h('div', { class: 'sidebar-head' }, h('span', { class: 'sidebar-seg' }, 'CAPITAL')), nav, favs, h('div', { class: 'sidebar-foot' }, h('small', null, 'cApexWeb ', F.version)));
+
+    const main = h('main', { class: 'main', id: 'main' });
+    const footer = h('footer', { class: 'foot' }, h('span', null, 'Designed & Developed by Shilpi Backoffice'), h('span', null, 'Prototype — all data is fictitious'), h('span', null, 'Session secure · last login 30-Sep-2026 09:12'));
+    const app = h('div', { class: 'app' }, topbar, side, main, footer);
+    document.body.appendChild(app);
+    document.body.appendChild(h('div', { class: 'toasts', id: 'toasts' }));
+    document.body.appendChild(h('div', { class: 'scrim', onclick: () => document.body.classList.remove('nav-open') }));
+    document.addEventListener('click', e => { if (layout !== 'sidebar' && !e.target.closest('.nav-sec')) $$('.nav-sec').forEach(x => x.classList.remove('open')); });
+    document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); } if (e.key === 'Escape') closePalette(); });
+    document.addEventListener('click', ripple);
+  }
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  /* ------------------------------------------------------------------ toast */
+  function toast(msg, kind) {
+    const t = h('div', { class: 'toast ' + (kind || '') }, icon(kind === 'err' ? 'x' : 'check'), h('span', null, msg));
+    $('#toasts').appendChild(t); setTimeout(() => t.classList.add('show'), 10); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3200);
+  }
+
+  /* ---------------------------------------------------------- command palette */
+  let pal;
+  function openPalette() {
+    if (pal) return; const list = h('div', { class: 'pal-list' });
+    const all = [];
+    NAV.forEach(sec => sec.items.forEach(([id, label]) => all.push({ id, label, sec: sec.label })));
+    BO.CLIENTS.forEach(c => all.push({ id: 'client-directory', label: c.code + ' — ' + c.name, sec: 'Client' }));
+    const inp = h('input', { class: 'pal-input', placeholder: 'Jump to a screen or client…', oninput: e => fill(e.target.value) });
+    function fill(q) { list.innerHTML = ''; q = q.toLowerCase(); all.filter(x => !q || (x.label + ' ' + x.sec).toLowerCase().includes(q)).slice(0, 12).forEach(x => list.appendChild(h('a', { class: 'pal-item', href: '#' + x.id, onclick: closePalette }, h('span', null, x.label), h('small', null, x.sec)))); }
+    fill('');
+    pal = h('div', { class: 'palette', onclick: e => { if (e.target === pal) closePalette(); } }, h('div', { class: 'pal-box' }, h('div', { class: 'pal-head' }, icon('search'), inp, h('kbd', null, 'Esc')), list));
+    document.body.appendChild(pal); inp.focus();
+  }
+  function closePalette() { if (pal) { pal.remove(); pal = null; } }
+
+  /* ----------------------------------------------------------------- router */
+  function route() {
+    const rt = new URLSearchParams(location.search).get('report_type');
+    if (!location.hash && rt !== null && SCREENS['upload-' + rt]) history.replaceState(null, '', location.pathname + location.search + '#upload-' + rt);
+    const id = (location.hash || '#dashboard').slice(1);
+    const spec = SCREENS[id] || SCREENS.dashboard; state.screen = id;
+    $$('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.id === id));
+    $$('.nav-sec').forEach(s => { const has = !!s.querySelector('.nav-item.active') || (s.querySelector('.nav-sec-btn[href="#' + id + '"]')); s.classList.toggle('current', !!has); if (has && document.body.dataset.layout === 'sidebar') s.classList.add('open'); });
+    document.body.classList.remove('nav-open');
+    if (document.body.dataset.layout !== 'sidebar') $$('.nav-sec').forEach(s => s.classList.remove('open'));
+    const main = $('#main'); main.innerHTML = '';
+    main.appendChild(pageHead(spec, id));
+    const body = h('div', { class: 'page-body' }); main.appendChild(body);
+    (RENDER[spec.kind] || RENDER.report)(spec, body, id);
+    main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
+    main.scrollTop = 0; window.scrollTo(0, 0);
+    document.title = spec.title + ' — ' + BO.FIRM.short + ' Back Office';
+  }
+
+  function sectionOf(id) { return NAV.find(s => s.items.some(i => i[0] === id)); }
+  function pageHead(spec, id) {
+    const sec = sectionOf(id);
+    const isFav = state.favs.includes(id);
+    return h('div', { class: 'page-head' },
+      h('div', null, h('div', { class: 'crumbs' }, h('a', { href: '#dashboard' }, 'Home'), h('i', null, '›'), h('span', null, sec ? sec.label : ''), h('i', null, '›'), h('b', null, spec.title)),
+        h('h1', null, spec.title, spec.kind === 'report' || spec.kind === 'ledger' ? h('span', { class: 'seg-badge' }, state.seg) : null), spec.desc ? h('p', { class: 'desc' }, spec.desc) : null),
+      h('div', { class: 'page-actions' },
+        h('button', { class: 'btn btn-ghost' + (isFav ? ' on' : ''), onclick: e => { const b = e.currentTarget; b.classList.toggle('on'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); toast(b.classList.contains('on') ? 'Added to favourites' : 'Removed from favourites'); } }, icon('star'), isFav ? 'Favourite' : 'Add favourite'),
+        spec.kind === 'report' || spec.kind === 'ledger' ? [h('button', { class: 'btn btn-ghost', onclick: () => toast('Excel export started') }, icon('excel'), 'Excel'), h('button', { class: 'btn btn-ghost', onclick: () => toast('PDF export started') }, icon('pdf'), 'PDF'), h('button', { class: 'btn btn-ghost', onclick: () => window.print() }, icon('print'), 'Print')] : null));
+  }
+
+  /* -------------------------------------------------------------- filters */
+  function field(fs) {
+    const id = 'f' + Math.random().toString(36).slice(2, 7);
+    let input;
+    switch (fs.t) {
+      case 'select': input = h('select', { id }, ...(fs.o || []).map(o => h('option', null, o))); break;
+      case 'date': input = h('input', { id, type: 'date', value: fs.v || BO.isoBack(fs.l.toLowerCase().includes('from') ? 30 : 0) }); break;
+      case 'number': input = h('input', { id, type: 'number', placeholder: fs.ph || '0.00' }); break;
+      case 'password': input = h('input', { id, type: 'password', placeholder: '••••••••' }); break;
+      case 'radio': input = h('div', { class: 'radios' }, ...fs.o.map((o, i) => h('label', { class: 'radio' }, h('input', { type: 'radio', name: id, checked: i === 0 ? '' : null }), h('span', null, o)))); break;
+      default: input = h('input', { id, type: 'text', placeholder: fs.ph || '' });
+    }
+    return h('div', { class: 'field' + (fs.wide || fs.t === 'radio' ? ' wide' : '') }, h('label', { for: id }, fs.l), input);
+  }
+  function filterCard(spec, onGo) {
+    if (!spec.filters || !spec.filters.length) return null;
+    const grid = h('div', { class: 'filters' }, ...spec.filters.map(field));
+    const bar = h('div', { class: 'filter-bar' },
+      h('div', { class: 'filter-presets' }, h('span', null, 'Presets:'), h('button', { class: 'chip', onclick: () => toast('Preset applied: This month') }, 'This month'), h('button', { class: 'chip', onclick: () => toast('Preset applied: Last quarter') }, 'Last quarter'), h('button', { class: 'chip', onclick: () => toast('Preset saved') }, icon('plus'), 'Save preset')),
+      h('div', { class: 'filter-actions' }, h('button', { class: 'btn btn-pill', onclick: () => { $$('input,select', grid).forEach(i => { if (i.type === 'radio') return; i.value = i.tagName === 'SELECT' ? i.options[0].value : ''; }); toast('Everything reset'); } }, 'Reset Everything'), h('button', { class: 'btn btn-primary btn-go', onclick: onGo }, spec.go || 'GO', icon('chev'))));
+    return h('section', { class: 'card filter-card' }, h('div', { class: 'card-title' }, 'Parameters', h('small', null, spec.filters.length + ' filters')), grid, bar);
+  }
+
+  /* ---------------------------------------------------------------- tables */
+  function fmtCell(col, v) {
+    if (col.t === 'num') return v === '' ? '' : BO.inr(v);
+    if (col.t === 'int') return BO.inr(v, 0);
+    return v;
+  }
+  function cellClass(col, v) {
+    let cls = '';
+    if (col.t === 'num' || col.t === 'int' || col.t === 'rate' || col.t === 'pct') cls += ' num';
+    if (col.bold) cls += ' strong';
+    if ((col.t === 'num' && v < 0) || (col.t === 'pct' && String(v).startsWith('-'))) cls += ' neg';
+    if (col.t === 'flag') cls += ' flag ' + (v === 'Y' ? 'y' : 'n');
+    if (col.t === 'status') cls += ' status';
+    return cls.trim();
+  }
+  function statusChip(v) { const k = /^ok$|paid|settled|processed|cleared|auction|closed|received|updated|verified|matched|accepted/i.test(v) ? 'ok' : /reject|overdue|bounced|due$/i.test(v) ? 'bad' : 'warn'; return h('span', { class: 'chip-status ' + k }, v); }
+  function dataTable(spec, rows) {
+    const cols = spec.columns;
+    const thead = h('thead');
+    if (spec.groupHeader) thead.appendChild(h('tr', { class: 'group-row' }, spec.selectable ? h('th') : null, ...spec.groupHeader.map(([t, span]) => h('th', { colspan: span, class: t ? 'grp' : '' }, t)), spec.rowActions ? h('th') : null));
+    thead.appendChild(h('tr', null, spec.selectable ? h('th', { class: 'sel' }, h('input', { type: 'checkbox', onchange: e => $$('tbody input[type=checkbox]', table).forEach(c => c.checked = e.target.checked) })) : null,
+      ...cols.map(col => h('th', { class: cellClass(col, 0).replace(/neg|strong/g, ''), onclick: e => { const t = e.currentTarget; const was = t.classList.contains('sorted'); $$('th', table).forEach(x => x.classList.remove('sorted', 'desc')); t.classList.add('sorted'); if (was) t.classList.toggle('desc'); toast('Sorted by ' + col.h + (t.classList.contains('desc') ? ' (descending)' : '')); } }, h('span', null, col.h), h('i', { class: 'sort-ic' }))), spec.rowActions ? h('th', null, 'Actions') : null));
+    const tbody = h('tbody', null, ...rows.map((r, ri) => h('tr', { style: '--i:' + Math.min(ri, 28) }, spec.selectable ? h('td', { class: 'sel' }, h('input', { type: 'checkbox' })) : null,
+      ...r.map((v, i) => { const col = cols[i]; const td = h('td', { class: cellClass(col, v) }); if (col.t === 'status') td.appendChild(statusChip(v)); else if (col.t === 'link') td.appendChild(h('a', { href: '#' + state.screen, class: 'tlink', onclick: e => { e.preventDefault(); toast(v + ' opened (prototype)'); } }, v)); else if (col.t === 'flag') td.appendChild(h('span', { class: 'flag-dot' }, v)); else if ((col.t === 'scrip' || col.t === 'sname' || col.t === 'cname' || col.t === 'contract') && spec.badges) { td.classList.add('with-badge'); td.appendChild(badge(v, true)); td.appendChild(h('span', null, v)); } else td.textContent = fmtCell(col, v); return td; }),
+      spec.rowActions ? h('td', { class: 'row-actions' }, h('div', { class: 'row-actions-in' }, ...spec.rowActions.map(a => h('a', { href: '#', onclick: e => { e.preventDefault(); toast(a + ' opened (prototype)'); } }, a)))) : null)));
+    const table = h('table', { class: 'grid' }, thead, tbody);
+    if (spec.totals) {
+      const tot = cols.map((col, i) => col.t === 'num' || col.t === 'int' ? rows.reduce((s, r) => s + (+r[i] || 0), 0) : null);
+      table.appendChild(h('tfoot', null, h('tr', null, spec.selectable ? h('td') : null, ...cols.map((col, i) => h('td', { class: cellClass(col, tot[i]) }, i === 0 ? 'Totals' : tot[i] === null ? '' : fmtCell(col, tot[i]))), spec.rowActions ? h('td') : null)));
+    }
+    return table;
+  }
+  // The live portal shows every result under a strip: Client Name | statement | period | Trxn.Selection | Holding+Fin | Excel PDF Mail Download Close
+  function resultStrip(spec, card) {
+    const tool = (ic, title, fn) => h('button', { class: 'tool', title, onclick: fn || (() => toast(title + ' (prototype)')) }, icon(ic), h('span', null, title.split(' ')[0]));
+    return h('div', { class: 'rstrip' },
+      h('div', { class: 'rstrip-l' },
+        h('span', { class: 'rs' }, h('small', null, 'Client Name'), h('b', null, state.client.code + ' ' + state.client.name)),
+        h('span', { class: 'rs' }, h('small', null, 'Statement'), h('b', null, spec.title)),
+        h('span', { class: 'rs' }, h('small', null, 'Date From'), h('b', null, '01-Apr-2026 to 30-Sep-2026')),
+        h('label', { class: 'rs rs-sel' }, h('small', null, 'Trxn. Selection'), h('select', null, ...['Combined', 'Cap+Cur+Com', 'Cap+Cur', 'NSE', 'BSE', 'F&O'].map(o => h('option', null, o))))),
+      h('div', { class: 'rstrip-r' },
+        spec.kind === 'ledger' ? h('button', { class: 'btn btn-primary btn-sm', onclick: () => location.hash = 'holding-fin' }, 'Holding + Fin') : null,
+        tool('excel', 'Excel export'), tool('pdf', 'PDF export'), tool('mail', 'Mail to client'), tool('download', 'Download report (detail)'), tool('print', 'Print', () => window.print()),
+        tool('x', 'Close', () => { card.replaceWith(emptyState(spec)); })));
+  }
+  function emptyState(spec) {
+    return h('div', { class: 'empty' }, illus('empty'), h('b', null, 'Set the parameters and press GO'), h('span', null, 'Results appear here with totals, search, Excel / PDF / mail and print.'));
+  }
+  function resultCard(spec, rows, extra) {
+    const wrap = h('div', { class: 'table-wrap' }, dataTable(spec, rows));
+    const copyBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: e => { const b = e.currentTarget; b.classList.add('done'); b.lastChild.textContent = 'Copied'; setTimeout(() => { b.classList.remove('done'); b.lastChild.textContent = 'Copy'; }, 1400); } }, icon('copy'), h('span', null, 'Copy'));
+    const tools = h('div', { class: 'result-tools' },
+      h('div', { class: 'result-meta' }, h('b', null, rows.length + ' rows'), h('span', null, '·'), h('span', null, 'as on 30-Sep-2026 · ' + state.exch)),
+      h('div', { class: 'result-actions' }, h('input', { class: 'tsearch', placeholder: 'Filter rows…', oninput: e => { const q = e.target.value.toLowerCase(); $$('tbody tr', wrap).forEach(tr => tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none'); } }),
+        h('button', { class: 'btn btn-ghost btn-sm', onclick: () => toast('Columns chooser (prototype)') }, icon('grid'), h('span', null, 'Columns')), copyBtn,
+        ...(spec.resultActions || []).map(a => h('button', { class: 'btn btn-primary btn-sm', onclick: () => toast(a + ' (prototype)') }, icon('download'), a))));
+    const card = h('section', { class: 'card result-card' });
+    if (spec.kind === 'report' || spec.kind === 'ledger') card.appendChild(resultStrip(spec, card)); else card.appendChild(h('div', { class: 'card-title' }, 'Results', h('small', null, spec.title)));
+    if (extra) card.appendChild(extra); card.appendChild(tools); card.appendChild(wrap);
+    if (spec.summary) card.appendChild(h('div', { class: 'summary' }, ...spec.summary.map(([k, v]) => h('div', { class: 'sum' }, h('small', null, k), h('b', null, v)))));
+    return card;
+  }
+  function infoStrip(pairs) { return h('div', { class: 'info-strip' }, ...pairs.map(([k, v]) => h('div', null, h('small', null, k), h('b', null, v)))); }
+  function runWithSkeleton(host, build) {
+    host.innerHTML = ''; host.appendChild(h('section', { class: 'card skeleton' }, h('div', { class: 'sk-line w40' }), h('div', { class: 'sk-line' }), h('div', { class: 'sk-line' }), h('div', { class: 'sk-line w70' })));
+    setTimeout(() => { host.innerHTML = ''; host.appendChild(build()); }, 380);
+  }
+
+  /* --------------------------------------------------------------- renderers */
+  const RENDER = {};
+  RENDER.report = function (spec, body) {
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => { const rows = BO.genRows(spec.columns, spec.rows || 10, spec.title.length); return resultCard(spec, rows, spec.info ? infoStrip(spec.info) : null); });
+    const fc = filterCard(spec, go); if (fc) body.appendChild(fc);
+    body.appendChild(host);
+    if (spec.auto || !spec.filters.length) go(); else host.appendChild(emptyState(spec));
+  };
+  RENDER.netpos = function (spec, body) {
+    const subs = [['Client-Scrip Wise', 'In Settlement'], ['Client-Scrip Wise', 'In Date Range'], ['Scrip-Client Wise', 'In Settlement'], ['Scrip-Client Wise', 'In Date Range'], ['Client-Scrip Wise', 'MIS Report']];
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => resultCard(Object.assign({}, spec, { kind: 'report' }), BO.genRows(spec.columns, spec.rows || 7, 77)));
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Net Position reports', h('small', null, 'choose a view')),
+      h('div', { class: 'sub-reports' }, ...subs.map((s, i) => h('button', { class: 'sub-report' + (i === 0 ? ' on' : ''), onclick: e => { $$('.sub-report').forEach(x => x.classList.remove('on')); e.currentTarget.classList.add('on'); go(); } }, icon(i === 4 ? 'report' : 'grid'), h('b', null, s[0]), h('small', null, s[1]))))));
+    body.appendChild(host); go();
+  };
+  RENDER.ledger = function (spec, body) {
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => {
+      const L = BO.ledgerRows(spec.rows || 20);
+      const strip = infoStrip([['Client', state.client.code + ' — ' + state.client.name], ['Opening Balance', L.opening], ['Closing Balance', L.closing], ['Period', '01-Aug-2026 to 30-Sep-2026']]);
+      const s2 = Object.assign({}, spec, { totals: false, columns: spec.columns.map(c => c.t === 'num' ? Object.assign({}, c, { t: 'text' }) : c) });
+      const card = resultCard(s2, L.rows.map(r => r), strip);
+      const tb = card.querySelector('tbody');
+      tb.insertBefore(h('tr', { class: 'bal-row' }, h('td', { colspan: 6 }, '** Opening Balance'), h('td', { class: 'num strong' }, L.opening)), tb.firstChild);
+      tb.appendChild(h('tr', { class: 'bal-row' }, h('td', { colspan: 6 }, '** Closing Balance'), h('td', { class: 'num strong' }, L.closing)));
+      $$('tbody tr:not(.bal-row) td', card).forEach((td, i) => { const ci = i % 7; if (ci >= 4) td.classList.add('num'); if (ci === 6) { td.classList.add('strong'); if (/Dr$/.test(td.textContent)) td.classList.add('neg'); else td.classList.add('pos'); } if (ci === 2 && /^DLV|^BRV|^B\d/.test(td.textContent)) { const t = td.textContent; td.textContent = ''; td.appendChild(h('a', { href: '#obligation', class: 'tlink' }, t)); } });
+      return card;
+    });
+    body.appendChild(filterCard(spec, go)); body.appendChild(host);
+    go();
+  };
+
+  RENDER.dashboard = function (spec, body) {
+    const kpis = [['Ledger balance', '₹ 1,25,430.50', 'Cr', 'ok', '+ 12,400 this week'], ['Holding value', '₹ 18,42,905', 'as on 29-Sep', '', '+ 1.8 % today'], ['Margin available', '₹ 3,10,220', 'F&O', '', 'utilised 42 %'], ['Pending requests', '3', 'pledge · change · buyback', 'warn', 'oldest 2 days'], ['Pay-in due today', '₹ 48,210', 'Sett 2026187', 'bad', 'by 10:30 tomorrow'], ['Contract notes', '4 new', 'this week', '', 'e-mailed & on file']];
+    const kpiRow = h('div', { class: 'kpis' }, ...kpis.map((k, i) => h('div', { class: 'kpi ' + k[3], style: '--i:' + i }, h('small', null, k[0]), h('b', null, k[1]), h('span', { class: 'kpi-sub' }, k[2]), h('span', { class: 'kpi-note' }, icon('trend'), k[4]))));
+    body.appendChild(kpiRow); $$('.kpi b', kpiRow).forEach(countUp);
+    // allocation donut (as on Console-style holdings overview)
+    const alloc = [['Equity', 72, 'var(--accent)'], ['F&O margin', 15, 'var(--warn)'], ['Cash', 9, 'var(--ok)'], ['Commodity', 4, 'var(--muted)']];
+    let acc = 0; const R = 42, C = 2 * Math.PI * R;
+    const donut = h('div', { class: 'donut-wrap' }, h('div', { class: 'donut', html: '<svg viewBox="0 0 120 120">' + alloc.map(a => { const len = C * a[1] / 100; const s = '<circle cx="60" cy="60" r="' + R + '" fill="none" stroke="' + a[2] + '" stroke-width="14" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 60 60)" class="seg-arc"/>'; acc += len; return s; }).join('') + '<text x="60" y="56" text-anchor="middle" class="donut-big">₹22.1L</text><text x="60" y="72" text-anchor="middle" class="donut-small">total value</text></svg>' }),
+      h('ul', { class: 'legend' }, ...alloc.map(a => h('li', null, h('i', { style: 'background:' + a[2] }), h('span', null, a[0]), h('b', null, a[1] + '%')))));
+    // ledger trend chart (inline SVG)
+    BO.reset(3); const pts = []; let v = 90; for (let i = 0; i < 30; i++) { v += (BO.rnd() - 0.45) * 12; pts.push(Math.max(20, Math.min(140, v))); }
+    const W = 640, H = 160; const path = pts.map((p, i) => (i ? 'L' : 'M') + (i * (W / 29)).toFixed(1) + ' ' + (H - p).toFixed(1)).join(' ');
+    const chart = h('section', { class: 'card span2' }, h('div', { class: 'card-title' }, 'Ledger balance — last 30 days', h('small', null, 'Capital · combined')),
+      h('div', { class: 'chart', html: '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>' +
+        [40, 80, 120].map(y => '<line x1="0" x2="' + W + '" y1="' + y + '" y2="' + y + '" class="gridline"/>').join('') + '<path d="' + path + ' L' + W + ' ' + H + ' L0 ' + H + 'Z" fill="url(#g)"/><path d="' + path + '" class="line"/></svg>' }),
+      h('div', { class: 'chart-legend' }, h('span', null, '01-Sep'), h('span', null, '15-Sep'), h('span', null, '30-Sep')));
+    const trades = Object.assign({}, SCREENS['trade-conf'], { totals: false, groupHeader: null, summary: null, rows: 6 });
+    const tradeCard = h('section', { class: 'card span2' }, h('div', { class: 'card-title' }, 'Today\'s trades', h('small', null, h('a', { href: '#trade-conf' }, 'Open Trade Confirmation'))), h('div', { class: 'table-wrap' }, dataTable(trades, BO.genRows(trades.columns, 6, 5))));
+    const reqs = [['Margin Pledge', 'TCS · 25 qty', 'Awaiting CDSL OTP', 'warn'], ['Change Request', 'Mobile number', 'Under verification', 'warn'], ['Buyback', 'INFY · 40 qty', 'Submitted 28-Sep', 'ok'], ['Payout', '₹ 25,000 NEFT', 'Processed 27-Sep', 'ok']];
+    const reqCard = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Requests', h('small', null, h('a', { href: '#transfer-status' }, 'Transfer status'))), h('ul', { class: 'list' }, ...reqs.map(r => h('li', null, h('div', null, h('b', null, r[0]), h('small', null, r[1])), statusChip(r[2])))));
+    const settle = [['Sett 2026187', 'Pay-in', '01-Oct-2026', '₹ 48,210 Dr'], ['Sett 2026188', 'Pay-out', '03-Oct-2026', '₹ 12,900 Cr'], ['Quarterly settlement', 'Running a/c', '30-Oct-2026', '90-day cycle'], ['Annual KYC update', 'Compliance', '15-Oct-2026', 'income proof']];
+    const setCard = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Upcoming', h('small', null, 'settlements & compliance')), h('ul', { class: 'list' }, ...settle.map(r => h('li', null, h('div', null, h('b', null, r[0]), h('small', null, r[1] + ' · ' + r[2])), h('span', { class: 'amt' }, r[3])))));
+    const quick = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Quick links'), h('div', { class: 'quick' }, ...['fin-ledger', 'demat-holding', 'contract-note', 'payments', 'cdsl-margin-pledge', 'change-req', 'portfolio', 'file-mgmt'].map(id => h('a', { class: 'quick-link', href: '#' + id }, icon(sectionOf(id).icon), h('span', null, SCREENS[id].title)))));
+    const spark = (seedN) => { BO.reset(seedN); let v = 50; const p = []; for (let i = 0; i < 16; i++) { v += (BO.rnd() - 0.48) * 10; p.push(Math.max(8, Math.min(40, v))); } const up = p[15] >= p[0]; return h('span', { class: 'spark ' + (up ? 'up' : 'down'), html: '<svg viewBox="0 0 64 24" preserveAspectRatio="none"><path d="' + p.map((y, i) => (i ? 'L' : 'M') + (i * 4.2).toFixed(1) + ' ' + (24 - y / 2).toFixed(1)).join(' ') + '"/></svg>' }); };
+    const hold = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Top holdings', h('small', null, h('a', { href: '#demat-holding' }, 'All holdings'))), h('ul', { class: 'list' }, ...BO.SCRIPS.slice(0, 5).map((s, i) => h('li', null, h('div', { class: 'with-badge' }, badge(s.code), h('div', null, h('b', null, s.code), h('small', null, (120 - i * 15) + ' qty · ' + BO.inr(s.rate)))), spark(100 + i), h('span', { class: 'amt' }, '₹ ' + BO.inr(s.rate * (120 - i * 15), 0))))));
+    const allocCard = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Allocation', h('small', null, 'by segment')), donut);
+    body.appendChild(h('div', { class: 'dash-grid' }, chart, allocCard, tradeCard, reqCard, hold, setCard, quick));
+    const line = chart.querySelector('.line'); if (line && line.getTotalLength) { const L = line.getTotalLength(); line.style.strokeDasharray = L; line.style.strokeDashoffset = L; requestAnimationFrame(() => { line.style.transition = 'stroke-dashoffset 1.4s ease'; line.style.strokeDashoffset = 0; }); }
+  };
+
+  RENDER.files = function (spec, body) {
+    const types = ['All documents', 'Contract Notes', 'Financial Ledger', 'Holding Statement', 'Margin Statement', 'Quarterly Settlement', 'Annual Global Statement', 'STT Certificate'];
+    const fs = { filters: [f2('Document type', 'select', types), f2('Client Code', 'select', BO.CLIENTS.map(c => c.code + ' - ' + c.name)), f2('Period From', 'date'), f2('Period To', 'date'), f2('Format', 'select', ['Any', 'PDF', 'Excel', 'Digitally signed PDF'])], go: 'Find documents', title: 'Documents' };
+    const cols = [{ h: 'Document', t: 'text', o: ['Contract Note CN/2026/00431', 'Financial Ledger — Sep 2026', 'Holding Statement — 29-Sep', 'Margin Statement — 29-Sep', 'Quarterly Settlement — Jun 2026', 'STT Certificate FY 25-26'] }, { h: 'Type', t: 'text', o: ['Contract Note', 'Ledger', 'Holding', 'Margin', 'Settlement'] }, { h: 'Period', t: 'date' }, { h: 'Generated', t: 'date' }, { h: 'Size', t: 'text', o: ['84 KB', '212 KB', '1.1 MB', '96 KB'] }, { h: 'Signed', t: 'flag' }, { h: 'Download', t: 'link', o: 'Download' }];
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => resultCard({ title: 'Documents', columns: cols, selectable: true, resultActions: ['Download selected as ZIP'] }, BO.genRows(cols, 12, 9)));
+    body.appendChild(h('div', { class: 'two-col' }, filterCard(fs, go),
+      h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Upload to broker', h('small', null, 'KYC, income proof, bank proof')),
+        h('div', { class: 'dropzone', onclick: () => toast('File picker (prototype)') }, illus('upload'), h('b', null, 'Drop files here or click to choose'), h('span', null, 'PDF, JPG or PNG up to 5 MB. Uploads are logged against your client code.')),
+        h('div', { class: 'field' }, h('label', null, 'Document category'), h('select', null, ...['Income proof (annual update)', 'Bank proof', 'Address proof', 'PAN', 'Nomination form', 'Other'].map(o => h('option', null, o)))),
+        h('div', { class: 'field' }, h('label', null, 'Remarks'), h('input', { placeholder: 'Optional note for the back office' })),
+        h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-primary', onclick: () => toast('Uploaded — acknowledgement sent by e-mail') }, icon('upload'), 'Upload')))));
+    body.appendChild(host); go();
+  };
+  const f2 = (l, t, o, x) => Object.assign({ l, t, o }, x || {});
+
+  RENDER.payments = function (spec, body) {
+    const gate = h('section', { class: 'card gate' }, illus('lock'), h('h3', null, 'Transaction Entry Password'), h('p', null, 'Fund requests are protected by a second password. Enter it once per session.'),
+      h('div', { class: 'field' }, h('label', null, 'Password'), h('input', { type: 'password', placeholder: '••••••••' })), h('button', { class: 'btn btn-primary', onclick: () => { gate.remove(); body.appendChild(form); toast('Transaction password accepted'); } }, 'Unlock', icon('chev')));
+    const cols = [{ h: 'Request Date', t: 'date' }, { h: 'Segment', t: 'seg' }, { h: 'Amount', t: 'num', max: 60000 }, { h: 'Bank', t: 'text', o: ['HDFC Bank ••1234', 'ICICI Bank ••5678'] }, { h: 'Mode', t: 'text', o: ['NEFT', 'RTGS', 'UPI'] }, { h: 'Status', t: 'status', o: ['Processed', 'Pending', 'Rejected'] }, { h: 'UTR / Ref', t: 'ref' }];
+    const form = h('div', { class: 'two-col' },
+      h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'New pay-out request'),
+        infoStrip([['Ledger balance', '1,25,430.50 Cr'], ['Withdrawable', '1,02,000.00'], ['Blocked (margin)', '23,430.50']]),
+        h('div', { class: 'filters' }, field({ l: 'Client Code', t: 'select', o: BO.CLIENTS.map(c => c.code + ' - ' + c.name) }), field({ l: 'Segment', t: 'select', o: ['Capital', 'F&O', 'Commodity', 'Currency'] }), field({ l: 'Amount (₹)', t: 'number', ph: '0.00' }), field({ l: 'Bank account', t: 'select', o: ['HDFC Bank ••1234 (primary)', 'ICICI Bank ••5678'] }), field({ l: 'Mode', t: 'select', o: ['NEFT', 'RTGS', 'UPI'] }), field({ l: 'Remarks', t: 'text', wide: true })),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: '' }), 'Pay-out to the registered bank account only, as per SEBI running-account norms.'),
+        h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost' }, 'Clear'), h('button', { class: 'btn btn-primary', onclick: () => toast('Pay-out request raised — reference PR' + BO.ri(10000, 99999)) }, icon('send'), 'Submit request'))),
+      resultCard({ title: 'Recent requests', columns: cols }, BO.genRows(cols, 8, 21)));
+    body.appendChild(gate);
+  };
+
+  RENDER['change-req'] = function (spec, body) {
+    const what = ['Mobile No.', 'Email ID', 'Address', 'Bank Details', 'UID', 'UPI ID'];
+    const steps = h('ol', { class: 'steps' }, ...['Select what to change', 'Enter new details', 'Verify OTP & captcha', 'Upload proof'].map((s, i) => h('li', { class: i === 0 ? 'on' : '' }, h('span', null, String(i + 1)), s)));
+    const secs = {};
+    const sec = (title, fields, key) => secs[key] = h('section', { class: 'card sub' + (key ? ' hidden' : '') }, h('div', { class: 'card-title' }, title), h('div', { class: 'filters' }, ...fields.map(field)));
+    const chk = h('div', { class: 'checks' }, ...what.map(w => h('label', { class: 'check box' }, h('input', { type: 'checkbox', onchange: e => { const k = w.split(' ')[0].toLowerCase(); if (secs[k]) secs[k].classList.toggle('hidden', !e.target.checked); } }), w)));
+    body.appendChild(h('section', { class: 'card' }, steps, h('div', { class: 'filters' }, field({ l: 'Client ID', t: 'text' }), field({ l: 'Name', t: 'text' })), h('div', { class: 'card-title' }, 'What do you want to change?'), chk,
+      h('div', { class: 'form-actions left' }, h('button', { class: 'btn btn-ghost', onclick: () => toast('Document upload / status (prototype)') }, icon('upload'), 'Document Upload / Check Status'))));
+    body.appendChild(sec('Mobile', [{ l: 'New Mobile No', t: 'text' }], 'mobile'));
+    body.appendChild(sec('Email', [{ l: 'New Email ID', t: 'text' }], 'email'));
+    body.appendChild(sec('Address', [{ l: 'Address line 1', t: 'text', wide: true }, { l: 'Address line 2', t: 'text', wide: true }, { l: 'Address line 3', t: 'text' }, { l: 'Address line 4', t: 'text' }, { l: 'Pin Code', t: 'text' }, { l: 'State', t: 'select', o: ['Maharashtra', 'Gujarat', 'Rajasthan', 'Delhi', 'Karnataka', 'Tamil Nadu', 'West Bengal', 'Uttar Pradesh'] }], 'address'));
+    body.appendChild(sec('Bank Details', [{ l: 'IFSC Code', t: 'text' }, { l: 'A/c Holder Name', t: 'text' }, { l: 'Bank A/c No', t: 'text' }, { l: 'A/c Type', t: 'select', o: ['Saving', 'Current', 'Current Credit / Overdraft'] }, { l: 'Bank Name', t: 'text' }, { l: 'Bank Address', t: 'text', wide: true }, { l: 'City', t: 'text' }, { l: 'Bank Pin', t: 'text' }, { l: 'Bank Short Code', t: 'text' }, { l: 'MICR Code', t: 'text' }], 'bank'));
+    secs.bank.appendChild(h('div', { class: 'checks' }, h('span', { class: 'lbl' }, 'Apply in segments:'), ...['Capital', 'Commodity', 'Currency', 'Depository'].map(s => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: '' }), s))));
+    secs.bank.appendChild(h('label', { class: 'check' }, h('input', { type: 'checkbox' }), 'All pay-outs will be transferred to this bank account.'));
+    body.appendChild(sec('UID', [{ l: 'UID No', t: 'text' }], 'uid'));
+    body.appendChild(sec('UPI', [{ l: 'UPI ID', t: 'text' }], 'upi'));
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Verify'), h('div', { class: 'filters' }, field({ l: 'Enter OTP', t: 'text', ph: '6-digit OTP' }), h('div', { class: 'field' }, h('label', null, 'Captcha'), h('div', { class: 'captcha' }, h('span', { class: 'cap-img' }, '7 K 4 Q 2'), h('input', { placeholder: 'Type the characters' })))),
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost', onclick: () => toast('OTP sent to the registered mobile') }, 'Get OTP'), h('button', { class: 'btn btn-primary', onclick: () => toast('Modification request submitted — ref MR' + BO.ri(10000, 99999)) }, icon('send'), 'Submit request'))));
+  };
+
+  function holdingsPick(qtyLabel) {
+    const cols = ['', 'Scrip Code', 'Scrip Name', 'ISIN', 'Holding Qty', 'Rate', qtyLabel, 'Value'];
+    const tbl = h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...cols.map((c, i) => h('th', { class: i >= 4 ? 'num' : '' }, c)))),
+      h('tbody', null, ...BO.SCRIPS.slice(0, 6).map((s, i) => { const q = 120 - i * 15; const inp = h('input', { class: 'qty', type: 'number', value: 0, max: q }); const val = h('td', { class: 'num strong' }, '0.00'); inp.addEventListener('input', () => val.textContent = BO.inr(Math.min(+inp.value || 0, q) * s.rate)); return h('tr', { style: '--i:' + i }, h('td', null, h('input', { type: 'checkbox', onchange: e => { if (e.target.checked && !+inp.value) { inp.value = q; inp.dispatchEvent(new Event('input')); } } })), h('td', { class: 'with-badge' }, badge(s.code, true), h('span', null, s.code)), h('td', null, s.name), h('td', { class: 'mono' }, s.isin), h('td', { class: 'num' }, BO.inr(q, 0)), h('td', { class: 'num' }, BO.inr(s.rate)), h('td', { class: 'num' }, inp), val); })));
+    return h('div', { class: 'table-wrap' }, tbl);
+  }
+  RENDER['cdsl-pledge'] = function (spec, body) {
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Pledge details'), h('div', { class: 'filters' }, field({ l: 'Pledgor BO ID', t: 'text' }), field({ l: 'Pledgee BO ID', t: 'text' }), field({ l: 'Agreement No', t: 'text' }), field({ l: 'Expiry Date', t: 'date' }),
+      field({ l: 'Reason Code', t: 'select', o: ['1 - Collateral for issue of debt', '2 - Collateral for loans', '3 - Collateral for loans (third party)', '4 - Margin pledge for trading', '5 - Personal use by promoters / PACs', '6 - Collateral for self loan', '7 - CUSPA pledge', '8 - COFIA pledge'] }), field({ l: 'Remarks (optional)', t: 'text', wide: true }))));
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Select holdings to pledge', h('small', null, 'tick a row to pledge the full quantity, or type a quantity')), holdingsPick('Pledge Qty'),
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost' }, 'Clear'), h('button', { class: 'btn btn-primary', onclick: () => toast('Normal pledge request sent to CDSL — ref NP' + BO.ri(10000, 99999)) }, icon('send'), 'Send Normal Pledge Request'))));
+  };
+  RENDER['cdsl-margin'] = function (spec, body) {
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => h('section', { class: 'card' }, h('div', { class: 'card-title' }, spec.mode === 'pledge' ? 'Holdings available for margin pledge' : 'Pledged holdings available for release'), holdingsPick(spec.mode === 'pledge' ? 'Pledge Qty' : 'Unpledge Qty'),
+      h('div', { class: 'notice' }, icon('shield'), h('span', null, 'On submit you will be taken to the CDSL page to confirm with an OTP sent to the mobile registered with the depository. The request is logged under Transfer Status.')),
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-primary', onclick: () => toast('Redirecting to CDSL OTP page (prototype)') }, icon('send'), spec.mode === 'pledge' ? 'Send OTP & Pledge' : 'Send OTP & Unpledge'))));
+    body.appendChild(filterCard({ filters: [f2('Client Code', 'select', BO.CLIENTS.map(c => c.code + ' - ' + c.name)), f2('Exchange', 'select', ['NSE', 'MCX', 'NCDEX'])], go: 'Show holdings' }, go)); body.appendChild(host); go();
+  };
+  RENDER['cdsl-destat'] = function (spec, body) {
+    const tbody = h('tbody');
+    const addRow = () => { const n = tbody.children.length + 1; tbody.appendChild(h('tr', null, h('td', null, String(n)), h('td', null, h('input', { placeholder: 'INE…' })), h('td', null, h('input')), h('td', null, h('select', null, h('option', null, 'A (All)'), h('option', null, 'P (Partial)'))), h('td', null, h('input', { type: 'number' })), h('td', null, h('input')), h('td', null, h('input', { type: 'date' })), h('td', null, h('input')), h('td', null, h('button', { class: 'ibtn', onclick: e => e.currentTarget.closest('tr').remove() }, icon('x'))))); };
+    addRow();
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Request header'), h('div', { class: 'filters' }, field({ l: 'BO ID', t: 'text' }), field({ l: 'DRF No', t: 'text' }), field({ l: 'No. of Pages', t: 'number' }), field({ l: 'BO Req ID', t: 'text' }))));
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'ISIN rows', h('small', null, 'Qty Type A = all, P = partial · Lock-in expiry and ARN are optional')), h('div', { class: 'table-wrap' }, h('table', { class: 'grid editable' }, h('thead', null, h('tr', null, ...['#', 'ISIN *', 'Folio No *', 'Qty Type', 'Quantity', 'Lock-in Rsn', 'Lock-in Expiry', 'ARN Code', ''].map(t => h('th', null, t)))), tbody)),
+      h('div', { class: 'form-actions left' }, h('button', { class: 'btn btn-ghost', onclick: addRow }, icon('plus'), 'Add ISIN row')),
+      h('div', { class: 'notice' }, icon('clock'), h('span', null, 'Notes: the physical DRF with certificates must reach the DP within 7 days of this request. CDSL acknowledges with a DRN.')),
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost' }, 'Reset'), h('button', { class: 'btn btn-primary', onclick: () => toast('Destat request submitted to CDSL') }, icon('send'), 'Submit to CDSL'))));
+  };
+  RENDER['transfer-status'] = function (spec, body) {
+    const cols = [{ h: 'Request Date/Time', t: 'date' }, { h: 'Request No', t: 'ref' }, { h: 'Type', t: 'text', o: ['Margin Pledge', 'Margin Unpledge', 'DPM to Margin', 'Buyback', 'Normal Pledge'] }, { h: 'Client Code', t: 'client' }, { h: 'Client Name', t: 'cname' }, { h: 'DP ID', t: 'text', o: ['12000000'] }, { h: 'DP Client ID', t: 'text', o: ['00XXXX01', '00XXXX57'] }, { h: 'ISIN', t: 'isin' }, { h: 'Scrip Name', t: 'sname' }, { h: 'Segment', t: 'seg' }, { h: 'Qty', t: 'int', max: 200 }, { h: 'Released', t: 'int', min: 0, max: 100 }, { h: 'Status', t: 'status', o: ['Open', 'Processed', 'Rejected', 'Pending'] }, { h: 'Remarks', t: 'text', o: ['—', 'OTP pending', 'Confirmed by CDSL'] }];
+    const host = h('div', { class: 'result-host' });
+    const go = () => runWithSkeleton(host, () => resultCard({ title: 'Requests', columns: cols, resultActions: ['DPM To Margin Request', 'Buyback Request'] }, BO.genRows(cols, 14, 31)));
+    body.appendChild(h('div', { class: 'stat-row' }, ...[['Open', '3', 'warn'], ['Processed', '41', 'ok'], ['Rejected', '2', 'bad'], ['Margin Pledge', '28', ''], ['Margin Unpledge', '12', '']].map(s => h('div', { class: 'stat ' + s[2] }, h('b', null, s[1]), h('small', null, s[0])))));
+    body.appendChild(filterCard({ filters: [f2('Filter by', 'select', ['All', 'Client', 'ISIN', 'Req. Date', 'Req. No']), f2('Search', 'text', null, { wide: true, ph: 'Client code, ISIN, request number…' })], go: 'Search' }, go)); body.appendChild(host); go();
+  };
+  RENDER.buyback = function (spec, body) {
+    const cols = [{ h: 'Client', t: 'client' }, { h: 'ISIN', t: 'isin' }, { h: 'Scrip Name', t: 'sname' }, { h: 'Sett. No', t: 'sett' }, { h: 'Pay-in Date', t: 'date' }, { h: 'Buy Rate', t: 'rate' }, { h: 'Holding', t: 'int', max: 300 }, { h: 'Pledge', t: 'int', min: 0, max: 50 }, { h: 'Request Qty', t: 'int', max: 100 }, { h: 'Send OTP', t: 'link', o: 'Send OTP' }, { h: 'Trx. ID', t: 'ref' }];
+    body.appendChild(h('div', { class: 'notice info' }, icon('clock'), h('span', null, 'Active buyback: INFOSYS LTD tender offer, record date 25-Sep-2026, tender window 01-Oct to 08-Oct-2026.')));
+    body.appendChild(resultCard({ title: 'Buyback pay-in', columns: cols }, BO.genRows(cols, 4, 41)));
+    body.appendChild(h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Verify'), h('div', { class: 'filters' }, field({ l: 'OTP', t: 'text', ph: '6-digit OTP' })), h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-primary', onclick: () => toast('Buyback request verified and submitted') }, icon('check'), 'Verify OTP & Submit'))));
+  };
+  RENDER['ofs-block'] = function (spec, body) {
+    const cols = [{ h: 'Date', t: 'date' }, { h: 'Symbol', t: 'scrip' }, { h: 'Blocked Amt', t: 'num' }, { h: 'JV No', t: 'ref' }, { h: 'Status', t: 'status', o: ['Blocked', 'Released', 'Utilised'] }];
+    body.appendChild(h('div', { class: 'two-col' }, h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'OFS fund block request'), infoStrip([['Client Code', state.client.code], ['Available amount', '1,02,000.00']]),
+      h('div', { class: 'filters' }, field({ l: 'Select Symbol', t: 'select', o: ['-- Select Active OFS --', 'COALINDIA — OFS 02-Oct-2026', 'NHPC — OFS 06-Oct-2026'] }), field({ l: 'Block Amount (₹)', t: 'number' })),
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-primary', onclick: () => toast('Funds blocked — JV posted to ledger') }, 'Block Fund'))),
+      resultCard({ title: 'Blocked funds', columns: cols }, BO.genRows(cols, 3, 51))));
+  };
+  RENDER['ofs-request'] = function (spec, body) {
+    const cols = [{ h: 'ISIN', t: 'isin' }, { h: 'Scrip Name', t: 'sname' }, { h: 'Symbol', t: 'scrip' }, { h: 'Series', t: 'text', o: ['EQ'] }, { h: 'Base Price', t: 'rate' }, { h: 'Sett. No', t: 'sett' }, { h: 'Period From', t: 'date' }, { h: 'Period To', t: 'date' }, { h: 'Pay-in Date', t: 'date' }, { h: 'UCC', t: 'client' }, { h: 'Qty', t: 'int', max: 100 }, { h: 'Price', t: 'rate' }, { h: 'Action', t: 'link', o: 'Place bid' }, { h: 'Order No', t: 'ref' }];
+    body.appendChild(infoStrip([['Client Code', state.client.code], ['Available Amt', '1,02,000.00'], ['Blocked for OFS', '50,000.00']]));
+    body.appendChild(resultCard({ title: 'Active offers', columns: cols }, BO.genRows(cols, 2, 61)));
+  };
+  RENDER['ofs-orders'] = function (spec, body) {
+    const cols = [{ h: 'Order No', t: 'ref' }, { h: 'Symbol', t: 'scrip' }, { h: 'ISIN', t: 'isin' }, { h: 'Qty', t: 'int', max: 100 }, { h: 'Price', t: 'rate' }, { h: 'Status', t: 'status', o: ['Placed', 'Confirmed', 'Cancelled'] }, { h: 'UCC', t: 'client' }, { h: 'Modify', t: 'link', o: 'Modify' }, { h: 'Cancel', t: 'link', o: 'Cancel' }];
+    body.appendChild(infoStrip([['Client Code', state.client.code], ['Orders today', '2']]));
+    body.appendChild(resultCard({ title: 'OFS order book', columns: cols }, BO.genRows(cols, 2, 71)));
+  };
+  RENDER.admin = function (spec, body) {
+    const tabs = ['Change Password', 'Transaction Password', 'Profile', 'Notifications', 'Login History'];
+    const panes = {};
+    panes[tabs[0]] = h('div', { class: 'filters' }, field({ l: 'Current password', t: 'password' }), field({ l: 'New password', t: 'password' }), field({ l: 'Confirm new password', t: 'password' }));
+    panes[tabs[1]] = h('div', { class: 'filters' }, field({ l: 'Login password', t: 'password' }), field({ l: 'New transaction password', t: 'password' }), field({ l: 'Confirm', t: 'password' }));
+    panes[tabs[2]] = h('div', { class: 'filters' }, field({ l: 'User ID', t: 'text' }), field({ l: 'Name', t: 'text' }), field({ l: 'Registered e-mail', t: 'text' }), field({ l: 'Registered mobile', t: 'text' }), field({ l: 'Default segment', t: 'select', o: ['Capital', 'F&O'] }), field({ l: 'Default exchange group', t: 'select', o: ['CAPITAL & FO', 'COMMODITY', 'CURRENCY'] }));
+    panes[tabs[3]] = h('div', { class: 'checks col' }, ...['Contract notes by e-mail', 'Daily margin statement', 'Pay-in reminders (SMS)', 'Quarterly settlement notice', 'Login alerts'].map(t => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: '' }), t)));
+    const lc = [{ h: 'Date / Time', t: 'date' }, { h: 'IP', t: 'text', o: ['49.36.xx.xx', '103.21.xx.xx'] }, { h: 'Device', t: 'text', o: ['Chrome · Windows', 'Safari · iPhone', 'Edge · Windows'] }, { h: 'Result', t: 'status', o: ['Success', 'Success', 'Failed'] }];
+    panes[tabs[4]] = h('div', { class: 'table-wrap' }, dataTable({ columns: lc }, BO.genRows(lc, 8, 81)));
+    const paneHost = h('div', { class: 'pane' }, panes[tabs[0]]);
+    const tabBar = h('div', { class: 'tabs' }, ...tabs.map((t, i) => h('button', { class: 'tab' + (i === 0 ? ' on' : ''), onclick: e => { $$('.tab', tabBar).forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); paneHost.innerHTML = ''; paneHost.appendChild(panes[t]); } }, t)));
+    body.appendChild(h('section', { class: 'card' }, tabBar, paneHost, h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-primary', onclick: () => toast('Saved') }, 'Save changes'))));
+  };
+
+  /* ----------------------------------------------------------------- upload */
+  RENDER.upload = function (spec, body) {
+    let files = [];
+    const steps = h('ol', { class: 'steps' }, ...['Select parameters', 'Choose file', 'Validate', spec.data ? 'Post to books' : 'Submit for verification'].map((s, i) => h('li', { class: i === 0 ? 'on' : '' }, h('span', null, String(i + 1)), s)));
+    const step = n => $$('li', steps).forEach((li, i) => li.classList.toggle('on', i <= n));
+    const accept = spec.accept.map(x => '.' + x.toLowerCase()).join(',');
+    const picker = h('input', { type: 'file', accept, multiple: spec.multi ? '' : null, hidden: '', onchange: e => setFiles(e.target.files) });
+    const list = h('div', { class: 'up-files' });
+    const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+    function setFiles(fl) {
+      const ok = [], bad = [];
+      Array.from(fl).forEach(fi => { const ext = fi.name.split('.').pop().toUpperCase(); (spec.accept.includes(ext) && fi.size <= spec.maxMb * 1048576 ? ok : bad).push(fi); });
+      if (bad.length) toast(bad.length + ' file(s) skipped — only ' + spec.accept.join(', ') + ' up to ' + spec.maxMb + ' MB', 'err');
+      files = spec.multi ? files.concat(ok) : ok.slice(0, 1); renderList(); if (files.length) step(1);
+    }
+    function renderList() {
+      list.innerHTML = '';
+      files.forEach((fi, i) => list.appendChild(h('div', { class: 'up-file' }, icon(/pdf/i.test(fi.name) ? 'pdf' : spec.data ? 'excel' : 'ledger'), h('span', { class: 'up-name' }, fi.name), h('small', null, kb(fi.size)),
+        h('button', { class: 'ibtn', title: 'Remove', onclick: () => { files.splice(i, 1); renderList(); } }, icon('x')))));
+    }
+    const dz = h('div', { class: 'dropzone', tabindex: '0', onclick: () => picker.click(), onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); picker.click(); } },
+      ondragover: e => { e.preventDefault(); dz.classList.add('drag'); }, ondragleave: () => dz.classList.remove('drag'), ondrop: e => { e.preventDefault(); dz.classList.remove('drag'); setFiles(e.dataTransfer.files); } },
+      illus('upload'), h('b', null, 'Drop ' + (spec.multi ? 'files' : 'the file') + ' here or click to choose'), h('span', null, spec.accept.join(', ') + ' · up to ' + spec.maxMb + ' MB' + (spec.multi ? ' each' : '')), picker);
+
+    const host = h('div', { class: 'result-host' });
+    const validate = () => {
+      if (!files.length) { toast('Choose a file first', 'err'); dz.focus(); return; }
+      step(2);
+      if (!spec.preview) { step(3); toast(files.length + ' document(s) uploaded — sent for verification'); files = []; renderList(); return; }
+      runWithSkeleton(host, () => {
+        const rows = BO.genRows(spec.preview, 12, spec.reportType + 31);
+        const si = spec.preview.findIndex(c => c.t === 'status');
+        const bad = rows.filter(r => !/^(ok|matched|accepted)$/i.test(r[si])).length;
+        const card = resultCard({ title: 'Validation preview — ' + files[0].name, columns: spec.preview, totals: spec.totals, resultActions: ['Download error rows'] }, rows,
+          infoStrip([['File', files[0].name], ['Records read', String(rows.length)], ['Valid', String(rows.length - bad)], ['Errors', String(bad)]]));
+        card.appendChild(h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost', onclick: () => { host.innerHTML = ''; step(1); } }, 'Cancel'),
+          h('button', { class: 'btn btn-primary', onclick: () => { step(3); toast((rows.length - bad) + ' records posted · ' + bad + ' skipped — batch UB' + BO.ri(10000, 99999)); host.innerHTML = ''; files = []; renderList(); } }, icon('check'), 'Post ' + (rows.length - bad) + ' valid records')));
+        return card;
+      });
+    };
+
+    const form = h('section', { class: 'card' }, h('div', { class: 'card-title' }, 'Upload', h('small', null, 'report_type=' + spec.reportType)),
+      h('div', { class: 'filters' }, ...spec.filters.map(field)), dz, list,
+      h('div', { class: 'form-actions' }, h('button', { class: 'btn btn-ghost', onclick: () => { files = []; renderList(); host.innerHTML = ''; step(0); } }, 'Clear'),
+        h('button', { class: 'btn btn-primary', onclick: validate }, icon('upload'), spec.preview ? 'Upload & Validate' : 'Upload')));
+
+    const side = h('section', { class: 'card' }, h('div', { class: 'card-title' }, spec.layout ? 'File layout' : 'Guidelines', h('small', null, spec.accept.join(' / '))),
+      spec.layout ? h('ol', { class: 'up-layout' }, ...spec.layout.map(x => h('li', null, x))) : null,
+      spec.rules ? h('ul', { class: 'up-rules' }, ...spec.rules.map(x => h('li', null, x))) : null,
+      spec.layout ? h('div', { class: 'form-actions left' }, h('button', { class: 'btn btn-ghost btn-sm', onclick: () => {
+        const a = h('a', { href: URL.createObjectURL(new Blob([spec.layout.join(',') + '\n'], { type: 'text/csv' })), download: spec.title.replace(/\W+/g, '_') + '_sample.csv' }); a.click(); toast('Sample format downloaded');
+      } }, icon('download'), 'Download sample format')) : null);
+
+    body.appendChild(steps);
+    body.appendChild(h('div', { class: 'two-col up-grid' }, form, side));
+    body.appendChild(host);
+    body.appendChild(resultCard({ title: 'Recent uploads', columns: spec.log }, BO.genRows(spec.log, 6, spec.reportType + 3)));
+  };
+
+  /* ------------------------------------------------------------------- init */
+  window.addEventListener('DOMContentLoaded', () => { buildShell(); route(); });
+  window.addEventListener('hashchange', route);
+  window.BOAPP = { toast, state };
+})();
+
+</script>
+</body>
+</html>
